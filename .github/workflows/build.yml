@@ -2,7 +2,6 @@ name: build
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -23,13 +22,6 @@ jobs:
         with:
           name: florilegium-pdfs
           path: |
-            florilegium.pdf
-            florilegium-grow.pdf
-            showcase.pdf
-      - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
             florilegium.pdf
             florilegium-grow.pdf
             showcase.pdf

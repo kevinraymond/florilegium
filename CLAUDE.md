@@ -25,6 +25,7 @@ document), pages get visitors, and paragraphs can open with a decorated initial;
 | `gallery.tex`, `tools/gallery.py` | one short page per variant (`\galleryink`, `\galleryage`) → `gallery/seeds.png` + `seeds.gif`, `inks.png`, `seasons.png`. |
 | `animation.tex`, `tools/animate.py` | growth animation: one page per frame (`\florilegiumframe`), parallel LuaLaTeX jobs, pdftoppm, ffmpeg → `build/grow-N.gif` + `.mp4`. `tools/animcheck.lua` checks that the last frame equals the page. |
 | `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image; `make RUN=tools/in-docker` when there's no local TeX. |
+| `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `grow.lua` has to be made there too. |
 
 ## Build
 
@@ -37,6 +38,7 @@ make grow-6 RUN=tools/in-docker [EXPLAIN=1]            # ~45 s: build/grow-6.gif
 make animation RUN=tools/in-docker                     # both, copied to gallery/growth*.gif
 tools/in-docker texlua tools/animcheck.lua 1 2 3       # last frame == page, byte for byte
 make preview                              # gallery/preview-*.png from the root PDFs
+make postscript [SEED=7]                  # the PostScript port via local gs -> build/postscript-7.pdf + gallery/preview-postscript.png
 ```
 
 Fixed seed: `lualatex "\def\florilegiumseed{7}\input{florilegium-grow.tex}"`. Any
@@ -97,6 +99,19 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   `3 Tr` / `0 Tr` instead. (ActualText on a path-only span is ignored by poppler.)
 - This container's TeX Live lacks luaotfload's font database for system fonts; the
   documents pin Computer Modern. Harmless to remove on a full install.
+- **PostScript port** (`postscript/florilegium.ps`, `make postscript [SEED=7]`, ~2.5 s):
+  callbacks (spines, half-widths) see their caller's variables by dynamic scoping, so a
+  helper that takes a procedure keeps its own names under `_` (`_p`, `_n`), and the growth
+  helpers use prefixes (`d.` disc, `a.` addstem…). Nothing is painted while it grows:
+  `ifill`/`istroke`/`iclip` capture the path with `pathforall` into numbered layers and
+  `paintlayers` replays them. Angles are degrees (PostScript's `sin`/`cos`/`atan`); the rng
+  is Park-Miller (Schrage), not mulberry32. Literal arrays in a procedure body are shared
+  between calls; build fresh ones before mutating.
+- **Ghostscript traps** (10.05): the PS transparency operators exist only with
+  `-dALLOWPSTRANSPARENCY`; a raster device also needs `0 .pushpdf14devicefilter` per page;
+  a PS `stroke` takes the *fill* alpha when rasterized and the stroke alpha in pdfwrite, so
+  set both; a banded second page with the compositor pushed segfaults (hence `/MaxBitmap`
+  in `setpagedevice`); Adobe's `ISOLatin1Encoding` has `/minus` at 45, not `/hyphen`.
 
 ## How the growth works (grow.lua)
 

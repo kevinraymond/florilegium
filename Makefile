@@ -3,6 +3,8 @@ SEEDS   ?= 1 2 3 4 5 6
 # RUN=tools/in-docker builds inside the florilegium-tex image (see tools/Dockerfile)
 RUN     ?=
 LUA      = ink.lua flora.lua florilegium.lua initial.lua
+GS      ?= gs
+SEED    ?= 7
 
 all: florilegium.pdf florilegium-grow.pdf showcase.pdf
 
@@ -48,6 +50,18 @@ animation:
 	cp build/grow-6.gif gallery/growth.gif
 	cp build/grow-6-explain.gif gallery/growth-explain.gif
 
+# the PostScript port, run by Ghostscript:  make postscript [SEED=7]
+#   -> build/postscript-7.pdf and gallery/preview-postscript.png (pdftoppm, Pillow)
+postscript: postscript/florilegium.ps
+	mkdir -p build gallery
+	$(GS) -q -dSAFER -dBATCH -dNOPAUSE -dALLOWPSTRANSPARENCY -dSeed=$(SEED) \
+	  -sDEVICE=pdfwrite -o build/postscript-$(SEED).pdf postscript/florilegium.ps
+	pdftoppm -png -r 45 build/postscript-$(SEED).pdf build/postscript
+	python3 -c "from PIL import Image; import glob; \
+	  ims = [Image.open(f).convert('RGB') for f in sorted(glob.glob('build/postscript-[0-9].png'))]; w, h = ims[0].size; \
+	  s = Image.new('RGB', (len(ims) * (w + 8) + 8, h + 16), (235, 235, 240)); \
+	  [s.paste(im, (8 + i * (w + 8), 8)) for i, im in enumerate(ims)]; s.save('gallery/preview-postscript.png')"
+
 preview: florilegium.pdf florilegium-grow.pdf showcase.pdf
 	mkdir -p gallery
 	pdftoppm -png -r 60 -f 1 -l 1 -singlefile florilegium.pdf gallery/preview-authored
@@ -61,4 +75,4 @@ preview: florilegium.pdf florilegium-grow.pdf showcase.pdf
 clean:
 	rm -rf build *.aux *.log *.out *.synctex.gz
 
-.PHONY: all gallery animation preview clean
+.PHONY: all gallery animation preview postscript clean

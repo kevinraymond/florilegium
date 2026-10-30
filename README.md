@@ -108,6 +108,48 @@ would have been; the option `novisitors` leaves them out.
 teal. The ramp from the darkest stroke to the palest wash is computed from that hue in
 OKLCH, so the light end never turns gray.*
 
+## In PostScript
+
+![the two pages of postscript/florilegium.ps, seed 7](gallery/preview-postscript.png)
+
+*`postscript/florilegium.ps`: the grown margin in pure PostScript, one self-contained file.
+Ghostscript, or a printer, computes every petal while it interprets the page, and the
+two pages of text explain how.*
+
+The drawing core, every primitive and the growth loop are ported from `ink.lua`, `flora.lua`
+and `grow.lua`, procedure for procedure. It needs no TeX and no other file:
+
+```sh
+gs -dALLOWPSTRANSPARENCY -sDEVICE=pdfwrite -dSeed=7 -o garden.pdf postscript/florilegium.ps
+make postscript             # the same -> build/postscript-7.pdf; SEED=12 for another garden
+```
+
+`-dSeed=N` picks the garden; without it the clock picks one, so every print is new.
+`-dAge=0` to `1` sets the season, and `-dNoVisitors` leaves out the butterflies, bees, snail
+and bird. Two pages take about 2.5 seconds. Much of the Lua maps directly: PostScript's own
+transformation matrix places each primitive (translate, rotate, scale), paths and Bézier
+curves are native, and procedures built at run time stand in for Lua's closures (a petal's
+half-width is a procedure handed to the outline builder). Four things don't map:
+
+- **Layers.** The garden grows in one order but is painted back to front, so every fill and
+  stroke is captured with `pathforall` into a list per layer, and the lists are played back
+  at the end.
+- **Transparency.** PostScript has none. Ghostscript provides it with `-dALLOWPSTRANSPARENCY`.
+  Without that flag, or on a printer, each translucent fill is mixed with the color it is
+  likely to land on and painted opaque. The result is flatter, but it's the same garden.
+- **Randomness.** The generator is Park-Miller in 32-bit integer arithmetic, and PostScript
+  reals are single precision, so seed 7 here is a different garden from seed 7 in LaTeX.
+- **Text.** The file typesets its own two pages in Times. It knows where its headings are and
+  where its text ends, so the copper flowers at the headings and the garden under the last
+  line work as they do in LaTeX. It has no initials, animation or authored composition.
+
+<img src="gallery/printed.jpg" alt="two prints of florilegium.ps, two different gardens" width="500">
+
+*The file sent twice to an Epson inkjet with `lp postscript/florilegium.ps`, with no seed
+given. The computer's print system runs the program again for each job, so each print takes
+its seed from the clock and grows a different garden. A printer gets the opaque version, as
+it has no transparency.*
+
 ## Build
 
 LuaLaTeX, one pass, about a second a page (two passes for `showcase.tex`, whose seasons need
