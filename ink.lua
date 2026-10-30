@@ -36,6 +36,8 @@ function M.rng(seed)
   function r.pick(t) return t[1 + floor(#t * r.u())] end
   function r.normal() local u1 = math.max(r.u(), 1e-12) return sqrt(-2 * math.log(u1)) * cos(2 * pi * r.u()) end
   function r.fork() return M.rng(floor(r.u() * 4294967295)) end   -- an independent stream
+  function r.save() return s end                                  -- replay a draw (animation)
+  function r.load(v) s = v end
   return r
 end
 
@@ -156,6 +158,22 @@ function M.accent(k)                        -- k>0 lightens toward white, k<0 da
   k = 1 + k
   return { accent[1] * k, accent[2] * k, accent[3] * k }
 end
+-- paint fn() with a ramp at the hue of the accent instead (copper leaves in autumn)
+local accent_ramp, accent_key
+function M.in_accent(fn)
+  local key = fmt("%.3f %.3f %.3f", accent[1], accent[2], accent[3])
+  local main = ramp
+  if accent_key ~= key then
+    local h0, c0 = hue, chroma_k
+    local _, C, h = rgb_to_oklch(accent[1], accent[2], accent[3])
+    ramp, hue, chroma_k = {}, h, math.max(0.15, math.min(1.3, C / REF_C))
+    build_ramp()
+    accent_ramp, accent_key, hue, chroma_k = ramp, key, h0, c0
+  end
+  ramp = accent_ramp
+  fn()
+  ramp = main
+end
 M.white = { 1, 1, 1 }
 M.paper = { 0.995, 0.993, 0.985 }
 function M.set_lift(v) local old = lift lift = v return old end
@@ -189,9 +207,20 @@ function M.to_page(x, y) return (T[1] * x + T[3] * y + T[5]) / CM, (T[2] * x + T
 -- ---------------------------------------------------------------- output
 -- Output goes into numbered layers; flush() writes them in order as one
 -- literal. ExtGState resources for opacity/blend are registered with pgf.
+-- While recording (the growth animation), every piece of output also keeps
+-- the tag that was current when it was painted, so a frame can later write
+-- only the pieces it wants, in their original order.
 local layers, cur = {}, 5
-local function buf() local b = layers[cur] if not b then b = {} layers[cur] = b end return b end
+local tags, tag, recording = {}, nil, false
+local function put(s)
+  local b = layers[cur]
+  if not b then b = {} layers[cur] = b tags[cur] = {} end
+  b[#b + 1] = s
+  if recording then tags[cur][#b] = tag end
+end
 function M.layer(n) local old = cur cur = n return old end
+function M.tag(t) local old = tag tag = t return old end
+function M.record(on) recording = on tag = nil end
 
 local gs_known = {}
 local function gs(op, mult)
@@ -252,18 +281,19 @@ local function rgb(c, stroke) return fmt(stroke and "%.3f %.3f %.3f RG" or "%.3f
 
 -- paint the current path. opacity < 1 or mult=true wraps it in its own graphics state
 function M.fill(c, op, mult)
-  local b, g = buf(), gs(op or 1, mult)
-  if g then b[#b + 1] = "q /" .. g .. " gs " .. rgb(c) .. " " .. take() .. " f Q"
-  else b[#b + 1] = rgb(c) .. " " .. take() .. " f" end
+  local g = gs(op or 1, mult)
+  if g then put("q /" .. g .. " gs " .. rgb(c) .. " " .. take() .. " f Q")
+  else put(rgb(c) .. " " .. take() .. " f") end
 end
-function M.stroke(c, w, op, mult)
-  local b, g = buf(), gs(op or 1, mult)
-  local s = rgb(c, true) .. fmt(" %.2f w ", w) .. take() .. " S"
-  if g then b[#b + 1] = "q /" .. g .. " gs " .. s .. " Q" else b[#b + 1] = "q " .. s .. " Q" end
+-- dash: a PDF dash array, e.g. "[2 2] 0"
+function M.stroke(c, w, op, mult, dash)
+  local g = gs(op or 1, mult)
+  local s = rgb(c, true) .. fmt(" %.2f w ", w) .. (dash and dash .. " d " or "") .. take() .. " S"
+  if g then put("q /" .. g .. " gs " .. s .. " Q") else put("q " .. s .. " Q") end
 end
 -- clip to the current path until the matching unclip()
-function M.clip() local b = buf() b[#b + 1] = "q " .. take() .. " W n" end
-function M.unclip() local b = buf() b[#b + 1] = "Q" end
+function M.clip() put("q " .. take() .. " W n") end
+function M.unclip() put("Q") end
 function M.discard() path = {} end
 -- paint the whole of the current clip (inside a clip(), cheaper than repeating the path)
 function M.flood(c, x0, y0, x1, y1)
@@ -272,13 +302,7 @@ function M.flood(c, x0, y0, x1, y1)
 end
 
 -- write all layers (in order) as one literal node at the current position
-function M.flush()
-  local keys = {}
-  for k in pairs(layers) do keys[#keys + 1] = k end
-  table.sort(keys)
-  local parts = {}
-  for _, k in ipairs(keys) do parts[#parts + 1] = concat(layers[k], "\n") end
-  layers = {}
+local function literal(parts)
   if #parts == 0 then return 0 end
   local s = "q 1 J 1 j\n" .. concat(parts, "\n") .. "\nQ"
   local n = node.new("whatsit", "pdf_literal")
@@ -286,6 +310,38 @@ function M.flush()
   n.data = s
   node.write(n)
   return #s
+end
+local function sorted_keys()
+  local keys = {}
+  for k in pairs(layers) do keys[#keys + 1] = k end
+  table.sort(keys)
+  return keys
+end
+function M.flush()
+  local parts = {}
+  for _, k in ipairs(sorted_keys()) do parts[#parts + 1] = concat(layers[k], "\n") end
+  layers, tags = {}, {}
+  return literal(parts)
+end
+
+-- hand over what was recorded instead of writing it: { keys, layers, tags }
+function M.take_recording()
+  local rec = { keys = sorted_keys(), layers = layers, tags = tags }
+  layers, tags, recording, tag = {}, {}, false, nil
+  return rec
+end
+-- write one frame of a recording: the untagged pieces and those keep(tag) accepts
+function M.emit(rec, keep)
+  local parts = {}
+  for _, k in ipairs(rec.keys) do
+    local L, T, out = rec.layers[k], rec.tags[k], {}
+    for i = 1, #L do
+      local t = T[i]
+      if t == nil or keep(t) then out[#out + 1] = L[i] end
+    end
+    if #out > 0 then parts[#parts + 1] = concat(out, "\n") end
+  end
+  return literal(parts)
 end
 
 -- ---------------------------------------------------------------- geometry

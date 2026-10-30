@@ -17,6 +17,7 @@ jobs:
           root_file: |
             florilegium.tex
             florilegium-grow.tex
+            showcase.tex
           latexmk_use_lualatex: true
       - uses: actions/upload-artifact@v4
         with:
@@ -24,12 +25,14 @@ jobs:
           path: |
             florilegium.pdf
             florilegium-grow.pdf
+            showcase.pdf
       - uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             florilegium.pdf
             florilegium-grow.pdf
+            showcase.pdf
 
   gallery:
     runs-on: ubuntu-latest
@@ -42,7 +45,10 @@ jobs:
           root_file: gallery.tex
           latexmk_use_lualatex: true
           extra_system_packages: python3 py3-pillow poppler-utils
-          post_compile: python3 tools/gallery.py --seeds 1 2 3 4 5 6 --jobs 2
+          post_compile: >-
+            python3 tools/gallery.py --seeds 1 2 3 4 5 6 --jobs 2 &&
+            python3 tools/gallery.py --seed 6 --inks 2456C4 5B2A1F 2F6B4F 8E1B3A 4B3B8F 1D6E7A --jobs 2 &&
+            python3 tools/gallery.py --seed 6 --ages 0 0.33 0.67 1 --jobs 2
       - uses: actions/upload-artifact@v4
         with:
           name: gallery
