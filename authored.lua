@@ -108,7 +108,8 @@ function M.page(g)
 
   -- stems
   local stems = {}
-  for name, st in pairs(STEMS) do
+  for _, name in ipairs({ "A", "B", "C" }) do            -- a fixed order: pairs() is not
+    local st = STEMS[name]
     local cp = {}
     for i, p in ipairs(st.pts) do cp[i] = { p[1] + (i > 1 and jit.sym(0.12) or 0), p[2] + (i > 1 and jit.sym(0.12) or 0) } end
     stems[name] = ink.catmull(cp, 10)
@@ -142,7 +143,8 @@ function M.page(g)
   end
 
   -- terminal flowers
-  for name, st in pairs(STEMS) do
+  for _, name in ipairs({ "A", "B", "C" }) do
+    local st = STEMS[name]
     local pts = stems[name]
     local p, q = pts[#pts], pts[#pts - 3]
     local ax, ay = norm(p[1] - q[1], p[2] - q[2])
