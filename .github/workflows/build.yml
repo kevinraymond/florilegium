@@ -1,0 +1,48 @@
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pdfs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: authored and grown (lualatex)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: |
+            florilegium.tex
+            florilegium-grow.tex
+          latexmk_use_lualatex: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: florilegium-pdfs
+          path: |
+            florilegium.pdf
+            florilegium-grow.pdf
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            florilegium.pdf
+            florilegium-grow.pdf
+
+  gallery:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - name: render six seeds
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: gallery.tex
+          latexmk_use_lualatex: true
+          extra_system_packages: python3 py3-pillow poppler-utils
+          post_compile: python3 tools/gallery.py --seeds 1 2 3 4 5 6 --jobs 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gallery
+          path: gallery/

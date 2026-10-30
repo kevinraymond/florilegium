@@ -1,0 +1,11 @@
+build/
+scratch/
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+# rendered previews live in gallery/; anything else is scratch
+*.png
+!gallery/*.png

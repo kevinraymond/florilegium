@@ -1,0 +1,92 @@
+%% florilegium.sty -- a procedurally generated floral page margin, drawn by Lua
+%% https://github.com/kevinraymond/florilegium  (MIT)
+%%
+%% LuaLaTeX only. The geometry of every petal, leaf and stem is computed in Lua
+%% (ink.lua, flora.lua) and written straight into the page as PDF path
+%% operators; TeX does no arithmetic. A page takes a second or two.
+%%
+%% Usage
+%%   \usepackage{florilegium}          authored composition (hand-placed, authored.lua)
+%%   \usepackage[grown]{florilegium}   composition grown to fit the page (grow.lua)
+%%   \usepackage[nomargin]{florilegium} no margin, only \florilegiumdraw
+%%   \def\florilegiumseed{7}            before \usepackage: a fixed seed (any positive
+%%                                      integer) instead of the page-number seed; on the
+%%                                      command line: lualatex "\def\florilegiumseed{7}\input{doc}"
+%%   \florilegiumtextend               at the very end of the text (grown only): the
+%%                                      garden then also fills the space below it
+%%   \definecolor{ink}{HTML}{...}       after loading: the hue of the whole palette
+%%   \definecolor{accent}{HTML}{...}    the copper of the hairline accents
+%%   \florilegiumdraw{flower}{1.2}      any primitive at the origin of the current TikZ
+%%                                      scope; see flora.lua for the list and options,
+%%                                      e.g. \florilegiumdraw{leaf}{2.0, {depth=0.6}}
+%%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{florilegium}[2026/10/30 v1.0 procedural floral margin, Lua-drawn]
+\ifdefined\directlua\else
+  \PackageError{florilegium}{florilegium needs LuaLaTeX}{Compile with lualatex.}\fi
+\RequirePackage{tikz}
+\RequirePackage{eso-pic}
+
+\newif\ifflorilegium@grown
+\newif\ifflorilegium@margin \florilegium@margintrue
+\DeclareOption{authored}{\florilegium@grownfalse}
+\DeclareOption{grown}{\florilegium@growntrue}
+\DeclareOption{nomargin}{\florilegium@marginfalse}
+\ProcessOptions\relax
+\ifdefined\florilegiumseed\else\def\florilegiumseed{}\fi
+
+%% ---------------------------------------------------------------- palette
+%% `ink` gives the hue and saturation; the ramp from navy to mist is derived
+%% from it in OKLCH (ink.lua). `accent` is used for the fine copper lines.
+\definecolor{ink}{HTML}{2456C4}
+\definecolor{accent}{HTML}{B4662F}
+
+\directlua{florilegium = require("florilegium")}
+
+%% pass the current colors to Lua
+\def\florilegium@colors{%
+  \extractcolorspecs{ink}{\flo@m}{\flo@s}\convertcolorspec{\flo@m}{\flo@s}{rgb}\flo@ink
+  \extractcolorspecs{accent}{\flo@m}{\flo@s}\convertcolorspec{\flo@m}{\flo@s}{rgb}\flo@acc
+  \directlua{florilegium.colors(\flo@ink, \flo@acc)}}
+
+%% one primitive inside a tikzpicture, under the current transformation
+\newcommand\florilegiumdraw[2]{\florilegium@colors\directlua{florilegium.draw("#1", #2)}}
+
+%% ---------------------------------------------------------------- page seed
+\def\florilegium@seed{%
+  \directlua{tex.sprint(florilegium.seed(\number\value{page}\ifx\florilegiumseed\@empty\else, \florilegiumseed\fi))}}
+
+%% ---------------------------------------------------------------- compositions
+\newcommand\margingarden{%
+\begin{tikzpicture}[overlay]
+  \florilegium@colors
+  \edef\flo@seed{\florilegium@seed}%
+  \directlua{florilegium.authored(\flo@seed)}%
+\end{tikzpicture}}
+
+%% where the text ends, measured in the same pass: \pagetotal is the height of
+%% the material already on the current page
+\def\flo@endpage{-1}\def\flo@endtotal{0pt}
+\newcommand\margingardengrown{%
+\begin{tikzpicture}[overlay]
+  \florilegium@colors
+  \edef\flo@seed{\florilegium@seed}%
+  \ifnum\value{page}=\flo@endpage\relax
+    \directlua{florilegium.grown(\flo@seed, 1, florilegium.geometry().ytop - \number\dimexpr\flo@endtotal\relax * 2.54 / (72.27 * 65536))}%
+  \else
+    \directlua{florilegium.grown(\flo@seed, 0, 0)}%
+  \fi
+\end{tikzpicture}}
+\newcommand\florilegiumtextend{\par
+  \xdef\flo@endpage{\number\value{page}}%
+  \xdef\flo@endtotal{\the\dimexpr\pagetotal+\pagedepth\relax}}
+
+%% ---------------------------------------------------------------- plumbing
+\ifflorilegium@margin
+  \ifflorilegium@grown
+    \AddToShipoutPictureBG{\AtPageLowerLeft{\margingardengrown}}
+  \else
+    \AddToShipoutPictureBG{\AtPageLowerLeft{\margingarden}}
+  \fi
+\fi
+\endinput
