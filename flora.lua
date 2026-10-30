@@ -490,15 +490,22 @@ function M.leaflet(rng, o)
 end
 
 -- ---------------------------------------------------------------- stems and sprays
--- a tapered stem along points (local cm), full widths in cm at the base and the tip
-function M.stem(pts, w0, w1, c, op)
+-- a tapered stem along points (local cm), full widths in cm at the base and the tip;
+-- with `tip` (cm) its last stretch narrows to a point, as at a growing tip
+function M.stem(pts, w0, w1, c, op, tip)
   local wbp = (w0 + w1) / 2 * ink.unit() * ink.CM
   if wbp < 0.7 then
     ink.smooth(pts, false)
     ink.stroke(c or tone(0.07), wbp, op)
     return
   end
-  ink.smooth(ink.ribbon(pts, function(t) return lerp(w0, w1, t) end), true)
+  local width = function(t) return lerp(w0, w1, t) end
+  if tip then
+    local _, L = ink.arclen(pts)
+    local f = math.min(1, tip / math.max(L, 1e-9))
+    width = function(t) return lerp(w0, w1, t) * (t > 1 - f and lerp(1, 0.15, (t - 1 + f) / f) or 1) end
+  end
+  ink.smooth(ink.ribbon(pts, width), true)
   ink.fill(c or tone(0.07), op)
 end
 
@@ -636,6 +643,55 @@ function M.umbel(rng, R, o)
   end
 end
 
+-- A flower gone to seed, a dandelion clock: hairline rays from a small dark
+-- head, each ending in a tuft, a few gaps where seeds have gone, and a few
+-- seeds drifting away up and to one side. Center at the origin; r = radius (cm).
+local function tuft(x, y, a, l)
+  for j = -2, 2 do
+    local b = a + j * 0.32
+    ink.moveto(x, y) ink.lineto(x + l * cos(b), y + l * sin(b))
+  end
+end
+function M.seedhead(rng, r, o)
+  o = o or {}
+  local fine = lod() * r > 0.2 and not ghost()
+  local n = fine and rng.int(26, 34) or 16
+  local gone = rng.range(0, 2 * pi)
+  for k = 1, n do
+    local a = 2 * pi * (k + rng.sym(0.3)) / n
+    if not (abs(((a - gone + pi) % (2 * pi)) - pi) < 0.5 and rng.chance(0.7)) then
+      local L = r * rng.range(0.72, 0.86)
+      local c, s = cos(a), sin(a)
+      ink.moveto(0.1 * r * c, 0.1 * r * s) ink.lineto(L * c, L * s)
+      if fine then tuft(L * c, L * s, a, r * rng.range(0.14, 0.2)) end
+    end
+  end
+  ink.stroke(tone(0.16), 0.22, 0.85)
+  ink.circle(0, 0, 0.13 * r) ink.fill(tone(0.12))
+  if fine then
+    for _ = 1, 10 do speck(rng.sym(0.08 * r), rng.sym(0.08 * r), 0.03 * r, rng.range(0, pi)) end
+    ink.fill(tone(0.04), 0.8)
+  end
+  -- drifting seeds: an achene on a beak, the tuft above it
+  local side = o.side or (rng.chance(0.5) and 1 or -1)
+  for _ = 1, o.drift or rng.int(2, 4) do
+    local d = r * rng.range(1.3, 2.4)
+    local a = (90 - side * rng.range(15, 60)) * rad
+    local x, y = d * cos(a), d * sin(a)
+    local tilt = (90 + rng.sym(35)) * rad
+    local l = r * 0.32
+    local tx, ty = x + l * cos(tilt), y + l * sin(tilt)
+    ink.moveto(x, y) ink.lineto(tx, ty)
+    tuft(tx, ty, tilt, r * 0.17)
+    ink.stroke(tone(0.18), 0.2, 0.8)
+    ink.push() ink.translate(x, y) ink.rotate(tilt / rad - 90)
+    ink.smooth(ink.blade(function(v) return 0, -0.12 * r * v end, 6, function(v) return 0.025 * r * sin(pi * v) end,
+      function(v) return 0.025 * r * sin(pi * v) end), true)
+    ink.fill(tone(0.1))
+    ink.pop()
+  end
+end
+
 -- a tapered logarithmic spiral, s = size (cm); starts at the origin, outer end
 function M.tendril(rng, s)
   local pts = {}
@@ -705,6 +761,260 @@ function M.hedera(rng, s, o)
   local rx, ry = ink.to_page(2.0, 0.28)
   ink.pop()
   return rx, ry
+end
+
+-- ---------------------------------------------------------------- visitors
+local function ellipse(cx, cy, rx, ry, n)
+  local pts = {}
+  for i = 0, n - 1 do local a = 2 * pi * i / n pts[#pts + 1] = { cx + rx * cos(a), cy + ry * sin(a) } end
+  return pts
+end
+
+-- one wing (or any flat shape) painted like a petal: wash, blotches, a dark
+-- pooled border, white veins fanning from the root (rx, ry), pale spots at the rim
+local function wing(rng, pts, t0, rx, ry, spots, fine)
+  ink.smooth(pts, true) ink.fill(tone(t0))
+  ink.smooth(pts, true) ink.clip()
+    mottle(rng, -1.2, -1.2, 1.2, 1.2, fine and 9 or 4, 0.14, t0 - 0.2, t0 + 0.2, fine and 8 or 0)
+    ink.smooth(pts, true) ink.stroke(tone(0.05), 0.26 * lod() * ink.CM, ghost() and 0.25 or 0.55, true)
+    for i, p in ipairs(pts) do
+      local f = rng.range(0.7, 0.88)
+      local ex, ey = rx + (p[1] - rx) * f, ry + (p[2] - ry) * f
+      streak3(rx, ry, lerp(rx, ex, 0.3), lerp(ry, ey, 0.4), lerp(rx, ex, 0.7), lerp(ry, ey, 0.75), ex, ey,
+        0.035, 0.004, white, rng.range(0.35, 0.6))
+      if spots and fine and i > 1 and i < #pts then
+        local cx, cy = rx + (p[1] - rx) * 0.9, ry + (p[2] - ry) * 0.9
+        ink.circle(cx, cy, rng.range(0.025, 0.04)) ink.fill(white, 0.8)
+      end
+    end
+  ink.unclip()
+end
+
+-- A butterfly seen from above, wings spread, head toward +y, the body's center at
+-- the origin; s = wingspan (cm). o.open in (0,1] narrows the wings: a wingbeat.
+function M.butterfly(rng, s, o)
+  o = o or {}
+  local open = o.open or 1
+  ink.push() ink.scale(s / 2)                       -- one unit = half the span
+  local fine = lod() > 0.3 and not ghost()
+  local t0 = o.tone or rng.range(0.28, 0.4)
+  local FW = { { 0.05, 0.1 }, { 0.3, 0.45 }, { 0.65, 0.68 }, { 0.92, 0.66 }, { 1.0, 0.5 }, { 0.88, 0.25 }, { 0.55, 0.05 }, { 0.15, -0.02 } }
+  local HW = { { 0.06, -0.02 }, { 0.45, -0.02 }, { 0.72, -0.22 }, { 0.7, -0.5 }, { 0.5, -0.72 }, { 0.25, -0.7 }, { 0.08, -0.35 } }
+  for _, w in ipairs({ FW, HW }) do for _, p in ipairs(w) do p[1], p[2] = p[1] + rng.sym(0.03), p[2] + rng.sym(0.03) end end
+  local eye = rng.chance(0.7)
+  for _, sx in ipairs({ -1, 1 }) do
+    local function side(w) local out = {} for i, p in ipairs(w) do out[i] = { sx * p[1] * open, p[2] } end return out end
+    wing(rng, side(HW), t0 + 0.06, sx * 0.04 * open, -0.04, true, fine)
+    if eye and fine then                                -- an eyespot with a copper pupil
+      local ex, ey = sx * 0.43 * open, -0.42
+      ink.smooth(ellipse(ex, ey, 0.11 * open, 0.11, 10), true) ink.fill(tone(0.08), 0.85)
+      ink.smooth(ellipse(ex, ey, 0.07 * open, 0.07, 10), true) ink.fill(white, 0.85)
+      ink.smooth(ellipse(ex, ey, 0.035 * open, 0.035, 8), true) ink.fill(ink.accent(0))
+    end
+  end
+  for _, sx in ipairs({ -1, 1 }) do
+    local w = {}
+    for i, p in ipairs(FW) do w[i] = { sx * p[1] * open, p[2] } end
+    wing(rng, w, t0, sx * 0.04 * open, 0.04, true, fine)
+  end
+  -- body: abdomen, furry thorax, head, clubbed antennae
+  local hb = function(v) return 0.05 * sin(pi * v ^ 0.7) end
+  ink.smooth(ink.blade(function(v) return 0, -0.62 + 0.62 * v end, 10, hb, hb), true) ink.fill(tone(0.06))
+  ink.smooth(ellipse(0, 0.08, 0.075, 0.13, 10), true) ink.fill(tone(0.04))
+  ink.circle(0, 0.27, 0.06) ink.fill(tone(0.04))
+  if fine then
+    for _, sx in ipairs({ -1, 1 }) do
+      local ex, ey = sx * rng.range(0.22, 0.3), rng.range(0.78, 0.9)
+      ink.moveto(sx * 0.02, 0.31) ink.curveto(sx * 0.05, 0.5, ex * 0.6, ey * 0.9, ex, ey)
+      ink.stroke(tone(0.08), 0.35)
+      ink.circle(ex, ey, 0.025) ink.fill(tone(0.06))
+    end
+    streak3(-0.015, -0.55, -0.02, -0.35, -0.02, -0.1, -0.01, 0.0, 0.015, 0.004, white, 0.45)
+  end
+  ink.pop()
+end
+
+-- A bee from above, head toward +y, center at the origin; s = body length (cm).
+-- o.trail: a dotted flight path looping away behind it.
+function M.bee(rng, s, o)
+  o = o or {}
+  ink.push() ink.scale(s)
+  local fine = lod() > 0.25 and not ghost()
+  if o.trail ~= false and not ghost() then
+    local R, c, turns = 0.32, rng.range(0.16, 0.22), rng.range(1.2, 1.6)
+    local side = rng.chance(0.5) and 1 or -1
+    local pts = {}
+    for i = 0, 60 do
+      local th = i / 60 * turns * 2 * pi
+      pts[#pts + 1] = { side * R * sin(th), -0.62 - c * th + R * (cos(th) - 1) * 0.6 }
+    end
+    ink.smooth(pts, false)
+    ink.stroke(tone(0.18), 0.9, 0.7, false, "[0 2.6] 0")
+  end
+  -- abdomen with dark bands, a sting
+  local ab = ellipse(0, -0.2, 0.19, 0.3, 16)
+  ink.smooth(ab, true) ink.fill(tone(0.38))
+  ink.smooth(ab, true) ink.clip()
+    for k = 0, 2 do
+      local y = -0.06 - 0.14 * k
+      ink.poly({ { -0.3, y + 0.035 }, { 0, y + 0.06 }, { 0.3, y + 0.035 }, { 0.3, y - 0.035 }, { 0, y - 0.01 }, { -0.3, y - 0.035 } }, true)
+    end
+    ink.fill(tone(0.05), 0.9)
+    if fine then mottle(rng, -0.2, -0.5, 0.2, 0.1, 4, 0.06, 0.2, 0.55, 4) end
+    ink.smooth(ab, true) ink.stroke(tone(0.05), 0.12 * lod() * ink.CM, 0.4, true)
+    streak3(-0.1, -0.38, -0.13, -0.25, -0.12, -0.12, -0.08, 0.0, 0.04, 0.008, white, 0.55)
+  ink.unclip()
+  ink.poly({ { -0.025, -0.48 }, { 0, -0.58 }, { 0.025, -0.48 } }, true) ink.fill(tone(0.05))
+  -- legs, then a furry thorax and the head
+  if fine then
+    for _, sx in ipairs({ -1, 1 }) do
+      for k = 0, 2 do
+        local y0 = 0.17 - 0.06 * k
+        local ex, ey = sx * rng.range(0.26, 0.32), y0 - 0.12 + 0.08 * (1 - k) + rng.sym(0.03)
+        ink.moveto(sx * 0.08, y0) ink.curveto(sx * 0.18, y0 + 0.04, ex * 0.9, ey + 0.05, ex, ey)
+      end
+    end
+    ink.stroke(tone(0.08), 0.35)
+  end
+  ink.smooth(ink.blob(rng, 0, 0.15, 0.14, 0.13, 0.18, 12), true) ink.fill(tone(0.06))
+  if fine then mottle(rng, -0.14, 0.03, 0.14, 0.28, 3, 0.05, 0.02, 0.3, 6) end
+  ink.smooth(ellipse(0, 0.33, 0.09, 0.075, 10), true) ink.fill(tone(0.04))
+  for _, sx in ipairs({ -1, 1 }) do
+    ink.moveto(sx * 0.03, 0.38) ink.lineto(sx * 0.07, 0.48) ink.lineto(sx * 0.14, 0.53)
+  end
+  ink.stroke(tone(0.06), 0.3)
+  -- wings over the body: clear, veined, a little blue
+  for _, sx in ipairs({ -1, 1 }) do
+    for k, wl in ipairs({ { 0.5, 0.16, 32 }, { 0.36, 0.12, 52 } }) do
+      ink.push() ink.translate(sx * 0.07, 0.17 - 0.04 * k) ink.rotate(sx > 0 and -wl[3] or 180 + wl[3])
+      local w = ellipse(wl[1] / 2, 0, wl[1] / 2, wl[2] / 2, 14)
+      ink.smooth(w, true) ink.fill(tone(0.85), 0.55)
+      ink.smooth(w, true) ink.stroke(tone(0.15), 0.3, 0.75)
+      if fine then
+        ink.moveto(0.02, 0) ink.curveto(wl[1] * 0.3, 0.02, wl[1] * 0.6, 0.01, wl[1] * 0.85, 0)
+        ink.moveto(wl[1] * 0.3, 0.01) ink.lineto(wl[1] * 0.55, wl[2] * 0.4)
+        ink.stroke(tone(0.2), 0.2, 0.6)
+      end
+      ink.pop()
+    end
+  end
+  ink.pop()
+end
+
+-- A snail crawling up along +y, its foot on the y axis and its shell on the +x
+-- side, origin at the middle of the foot; s = shell diameter (cm).
+function M.snail(rng, s, o)
+  o = o or {}
+  ink.push() ink.scale(s)
+  local fine = lod() > 0.25 and not ghost()
+  -- the body: a long soft foot, the head raised at the front
+  local body = { { 0.0, -0.78 }, { -0.01, -0.3 }, { 0.0, 0.3 }, { 0.04, 0.58 }, { 0.12, 0.7 }, { 0.22, 0.66 },
+    { 0.24, 0.5 }, { 0.2, 0.32 }, { 0.17, 0.0 }, { 0.12, -0.45 }, { 0.05, -0.7 } }
+  for _, p in ipairs(body) do p[1] = p[1] * (1 + rng.sym(0.08)) end
+  local tb = o.tone or rng.range(0.5, 0.6)
+  ink.smooth(body, true) ink.fill(tone(tb))
+  ink.smooth(body, true) ink.clip()
+    if fine then mottle(rng, -0.1, -0.8, 0.3, 0.8, 5, 0.1, tb - 0.25, tb + 0.15, 10) end
+    ink.moveto(-0.05, -0.8) ink.lineto(-0.05, 0.7) ink.lineto(0.04, 0.7) ink.lineto(0.04, -0.8) ink.close()
+    ink.fill(tone(0.15), 0.35, true)
+    ink.smooth(body, true) ink.stroke(tone(0.08), 0.1 * lod() * ink.CM, 0.4, true)
+  ink.unclip()
+  -- feelers: two long ones with eyes, two short ones
+  for k, f in ipairs({ { 0.17, 0.66, 0.36, 1.02 }, { 0.1, 0.7, 0.18, 1.04 }, { 0.05, 0.68, 0.0, 0.84 } }) do
+    ink.moveto(f[1], f[2]) ink.curveto(f[1] + 0.02, f[2] + 0.12, f[3] - 0.04, f[4] - 0.1, f[3], f[4])
+    ink.stroke(tone(0.12), k < 3 and 0.45 or 0.35)
+    if k < 3 then ink.circle(f[3], f[4], 0.028) ink.fill(tone(0.05)) end
+  end
+  -- the shell: a disc with a white spiral lifted out of it and a dark one beside it
+  local cx, cy, R = 0.36, 0.0, 0.42
+  local t0 = rng.range(0.22, 0.32)
+  local disc = ink.blob(rng, cx, cy, R, R * 0.96, 0.03, 16)
+  ink.smooth(disc, true) ink.fill(tone(t0))
+  ink.smooth(disc, true) ink.clip()
+    mottle(rng, cx - R, cy - R, cx + R, cy + R, fine and 7 or 3, 0.1, t0 - 0.18, t0 + 0.22, fine and 10 or 0)
+    local turns, ph = rng.range(2.3, 2.7), rng.range(0, 2 * pi)
+    local sp, dk = {}, {}
+    for i = 0, 50 do
+      local t = i / 50
+      local a = ph + t * turns * 2 * pi
+      local r = R * 0.95 * t ^ 1.15
+      sp[#sp + 1] = { cx + r * cos(a), cy + r * sin(a) }
+      local r2 = R * 0.95 * max(0, t - 0.12) ^ 1.15
+      dk[#dk + 1] = { cx + r2 * cos(a), cy + r2 * sin(a) }
+    end
+    ink.smooth(dk, false) ink.stroke(tone(0.05), 0.07 * lod() * ink.CM, 0.6, true)
+    ink.smooth(sp, false) ink.stroke(white, 0.05 * lod() * ink.CM, 0.75)
+    ink.smooth(disc, true) ink.stroke(tone(0.05), 0.12 * lod() * ink.CM, 0.5, true)
+  ink.unclip()
+  ink.pop()
+end
+
+-- A small songbird perched, seen from the side, facing +x (o.facing = -1: -x);
+-- its feet at the origin, s = length from tail to beak (cm).
+function M.bird(rng, s, o)
+  o = o or {}
+  ink.push() ink.scale((o.facing or 1) * s, s)
+  local fine = lod() > 0.3 and not ghost()
+  local t0 = o.tone or rng.range(0.3, 0.38)
+  -- the tail: a few long feathers fanning down and back
+  local hw = function(v) return 0.055 * sin(pi * v ^ 0.4) ^ 0.6 end
+  for k = 1, 4 do
+    local L = rng.range(0.42, 0.5)
+    ink.push() ink.translate(-0.26, 0.28) ink.rotate(rng.range(-150, -140) + 7 * k - 90)
+    local f = ink.blade(function(v) return 0, v * L end, 10, hw, hw)
+    ink.smooth(f, true) ink.fill(tone(0.12 + 0.05 * k))
+    ink.smooth(f, true) ink.stroke(tone(0.05), 0.3, 0.5)
+    ink.pop()
+  end
+  -- body and head in one outline
+  local body = { { 0.37, 0.56 }, { 0.3, 0.665 }, { 0.15, 0.64 }, { -0.03, 0.54 }, { -0.22, 0.4 }, { -0.31, 0.3 },
+    { -0.27, 0.22 }, { -0.08, 0.12 }, { 0.12, 0.12 }, { 0.27, 0.27 }, { 0.35, 0.42 } }
+  for _, p in ipairs(body) do p[1], p[2] = p[1] + rng.sym(0.012), p[2] + rng.sym(0.012) end
+  ink.smooth(body, true) ink.fill(tone(t0))
+  ink.smooth(body, true) ink.clip()
+    -- pale breast with darker specks, a darker cap
+    for k = 1, 4 do
+      ink.smooth(ink.blob(rng, 0.17, 0.27, 0.08 + 0.04 * k, 0.06 + 0.03 * k, 0.2, 9), true)
+      ink.fill(white, 0.2)
+    end
+    mottle(rng, -0.35, 0.1, 0.4, 0.7, fine and 10 or 4, 0.07, t0 - 0.2, t0 + 0.2, fine and 10 or 0)
+    if fine then
+      for _ = 1, 14 do
+        local x, y = rng.range(0.08, 0.3), rng.range(0.16, 0.42)
+        ink.push() ink.translate(x, y) ink.rotate(rng.range(-20, 20))
+        ink.smooth(ellipse(0, 0, 0.012, 0.022, 6), true)
+        ink.pop()
+      end
+      ink.fill(tone(0.1), 0.7)
+    end
+    ink.smooth(ink.blob(rng, 0.24, 0.66, 0.15, 0.08, 0.1, 9), true) ink.fill(tone(0.08), 0.6, true)
+    ink.smooth(body, true) ink.stroke(tone(0.05), 0.07 * lod() * ink.CM, 0.5, true)
+  ink.unclip()
+  -- the folded wing: a dark blade with feather tips, white lifted along the feathers
+  local wingpts = { { 0.17, 0.47 }, { 0.04, 0.52 }, { -0.12, 0.45 }, { -0.28, 0.33 }, { -0.44, 0.22 }, { -0.35, 0.23 },
+    { -0.38, 0.19 }, { -0.26, 0.21 }, { -0.28, 0.17 }, { -0.12, 0.23 }, { 0.05, 0.31 }, { 0.15, 0.4 } }
+  local tw = t0 - 0.1
+  ink.smooth(wingpts, true, 0.8) ink.fill(tone(tw))
+  ink.smooth(wingpts, true, 0.8) ink.clip()
+    mottle(rng, -0.45, 0.15, 0.2, 0.6, fine and 6 or 3, 0.07, tw - 0.15, tw + 0.2, 0)
+    for k = 1, 5 do
+      local y = 0.28 + 0.04 * k
+      streak3(0.12, y + 0.05, 0.0, y + 0.03, -0.15, y - 0.03, -0.3 - 0.02 * k, y - 0.1 - 0.01 * k, 0.025, 0.003, white, rng.range(0.45, 0.7))
+    end
+    ink.smooth(wingpts, true, 0.8) ink.stroke(tone(0.04), 0.06 * lod() * ink.CM, 0.5, true)
+  ink.unclip()
+  -- beak, eye, legs
+  ink.poly({ { 0.355, 0.585 }, { 0.47, 0.545 }, { 0.36, 0.51 } }, true) ink.fill(tone(0.05))
+  ink.moveto(0.36, 0.548) ink.lineto(0.45, 0.546) ink.stroke(white, 0.2, 0.6)
+  ink.circle(0.285, 0.585, 0.03) ink.fill(white, 0.95)
+  ink.circle(0.29, 0.585, 0.018) ink.fill(tone(0.03))
+  ink.circle(0.284, 0.592, 0.006) ink.fill(white)
+  for _, lx in ipairs({ 0.0, 0.08 }) do
+    ink.moveto(lx + 0.02, 0.14) ink.lineto(lx, 0.0)
+    ink.moveto(lx - 0.05, 0.0) ink.lineto(lx + 0.05, 0.005)
+  end
+  ink.stroke(tone(0.06), 0.45)
+  ink.pop()
 end
 
 -- draw `fn` as a pale ghost (the faded layer behind the garden)

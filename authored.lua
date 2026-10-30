@@ -74,6 +74,9 @@ local BRANCHES = {
 }
 
 local GHOSTS = { { 3.4, 5.4, 1.5 }, { 2.7, 16.9, 1.25 } }
+-- visitors: kind, x, y (cm), size, heading (degrees); the snail: stem, fraction, side
+local VISITORS = { { "butterfly", 4.3, 20.6, 1.3, 100 }, { "bee", 1.6, 26.6, 0.75, 30 } }
+local SNAIL = { "C", 0.35, 1, 0.8 }
 local ACCENTS = { { "rosette", 0.45, 4.2 }, { "sparkle", 0.5, 9.9 }, { "sparkle", 0.45, 18.3 }, { "rosette", 0.5, 24.3 }, { "sparkle", 5.9, 1.6 } }
 
 -- the footer: the stem runs from the root to this fraction of the text width;
@@ -239,6 +242,19 @@ function M.page(g)
     ink.stroke(ink.accent(0), 0.3, 0.8)
     place(LY.accent, x2 + 0.18, e[2], 90, function() flora.sparkle(rng.fork(), 0.12, { rays = false }) end)
     ink.circle(x2 + 0.45, e[2], 0.025) ink.fill(ink.accent(0))
+  end
+
+  -- visitors last, from their own stream, so the rest of the page does not change
+  if g.visitors ~= false then
+    local vr = ink.rng(g.seed * 7919 + 103)
+    for _, v in ipairs(VISITORS) do
+      local r = vr.fork()
+      place(LY.accent, v[2], v[3], v[5], function() flora[v[1]](r, v[4]) end)
+    end
+    local x, y, tx, ty = at(stems[SNAIL[1]], SNAIL[2])
+    local r = vr.fork()
+    place(LY.accent, x + ty * SNAIL[3] * 0.03, y - tx * SNAIL[3] * 0.03, deg(tx, ty), function()
+      ink.scale(SNAIL[3], 1) flora.snail(r, SNAIL[4]) end)
   end
 
   -- a safety clip: the column (a little past its edge) and the footer band
