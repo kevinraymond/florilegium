@@ -584,7 +584,6 @@ async function show(m) {
   $('#download').disabled = false
   const took = m.ms < 950 ? `${Math.max(10, Math.round(m.ms / 10) * 10)} milliseconds` : `${(m.ms / 1000).toFixed(1)} seconds`
   status(`This proof grew in ${took}, here in your browser.`)
-  thumbs()
 }
 
 $('#download').onclick = () => {
@@ -601,47 +600,7 @@ $('#copy').onclick = async (e) => {
   setTimeout(() => { e.target.textContent = 'copy' }, 1200)
 }
 
-// ---------------------------------------------------------------- the seeds on either side
-// a second worker grows the neighbors, nearest first, once the proof itself is done
-const thumber = new Worker('worker.js')
-const shelf = new Map()                       // options for a seed -> object URL of its SVG
-let thumbGen = 0, thumbBusy = false
-thumber.onmessage = (e) => {
-  const m = e.data
-  if (m.ready || m.id === undefined) return
-  thumbBusy = false
-  const i = m.id.indexOf('#'), gen = +m.id.slice(0, i), key = m.id.slice(i + 1)
-  if (gen === thumbGen && !m.error) { shelf.set(key, URL.createObjectURL(new Blob([m.svg], { type: 'image/svg+xml' }))); drawSeeds() }
-  nextThumb()
-}
-const nine = () => { const lo = Math.max(1, state.seed - 4); return Array.from({ length: 9 }, (_, i) => lo + i) }
-const thumbKey = (n) => JSON.stringify({ ...options(n), head: true })
-function thumbs() {
-  thumbGen++
-  const keep = new Set(nine().map(thumbKey))
-  for (const [k, url] of shelf) if (!keep.has(k)) { URL.revokeObjectURL(url); shelf.delete(k) }
-  if (current && !shelf.has(thumbKey(state.seed))) shelf.set(thumbKey(state.seed), URL.createObjectURL(new Blob([current.svg], { type: 'image/svg+xml' })))
-  drawSeeds()
-  setTimeout(nextThumb, 300)
-}
-function nextThumb() {
-  if (thumbBusy) return
-  const n = nine().filter((n) => !shelf.has(thumbKey(n))).sort((a, b) => Math.abs(a - state.seed) - Math.abs(b - state.seed))[0]
-  if (n === undefined) return
-  thumbBusy = true
-  thumber.postMessage({ id: `${thumbGen}#${thumbKey(n)}`, options: { ...options(n), head: true } })
-}
-function drawSeeds() {
-  $('#seeds').innerHTML = nine().map((n) => {
-    const url = shelf.get(thumbKey(n))
-    return `<button data-seed="${n}" aria-current="${n === state.seed}" aria-label="Seed ${n}">` +
-      (url ? `<img class="thumb" src="${url}" alt="">` : '<span class="thumb"></span>') + `<span>${n}</span></button>`
-  }).join('')
-  for (const b of document.querySelectorAll('[data-seed]')) b.onclick = () => set('seed', +b.dataset.seed, true)
-}
-
 window.addEventListener('hashchange', () => { readHash(); forget(); pageText(current); render() })
 readHash()
 pageText(null)
-drawSeeds()
 render()
