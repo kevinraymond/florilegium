@@ -21,7 +21,8 @@ PDF. Every page gets its own garden.
 *Six seeds of the grown composition. Same code, different seed — and the garden fills
 whatever space the text leaves free.*
 
-Two documents share one package, and a third shows what else it does:
+Two documents share one package, and two more (`showcase.tex`, `spread.tex`) show what
+else it does:
 
 | | `florilegium.tex` | `florilegium-grow.tex` |
 |---|---|---|
@@ -108,6 +109,108 @@ would have been; the option `novisitors` leaves them out.
 teal. The ramp from the darkest stroke to the palest wash is computed from that hue in
 OKLCH, so the light end never turns gray.*
 
+## Themes
+
+![seed 6 as flora, geometric and math](gallery/themes.png)
+
+*Seed 6 three times: as it always grew, with `theme=geometric`, and with `theme=math`.*
+
+The growth loop never knew what it was drawing. It reads a table of motifs (the size of
+the disc each one takes, a weight, a function that draws it) and calls every primitive by
+name. A theme is one Lua file, `theme-<name>.lua`, that replaces some of those primitives
+and may add rows to the table, or brings a composition of its own.
+
+**`theme=geometric`** is the same plant cut from flat shapes (`theme-geometric.lua`). It
+grows exactly as the flowers do, and only the drawing changes: the stems run straight
+between their nodes, the leaves are kites and toothed polygons folded into a light and a
+dark facet with straight white veins, the flowers are rosettes of rhombi or layered star
+polygons, the tendrils square spirals, the bird and the butterfly low-poly. The colors are
+flat tones of the ink, with no wash; crystals (Platonic solids, flat-shaded like cut
+stones) grow among the flowers. A page is about a tenth of the size of a flora page.
+
+<img src="gallery/geometric.png" alt="a page with the geometric theme" width="500">
+
+![the primitives of the geometric theme](gallery/specimen-geometric.png)
+
+**`theme=math`** is no plant at all (`theme-math.lua`, drawing from `figures.lua`):
+mathematics cascading down the margin and across the bottom of the page, overlapping a
+little so it blends. A large figure sits in the corner where the column meets the bottom
+(an Apollonian gasket, a deep Koch snowflake, Vogel's disc, a polyhedron). Down the column
+run one or two *families*, figures that change as they go, joined by small copper arrows:
+the Koch snowflake gaining a level, a polygon gaining sides on its way to the circle, the
+cube truncating into the octahedron, chords k → mk mod n turning from a cardioid into a
+nephroid, Vogel's disc packing evenly only at the golden angle. Equations that hold
+(e^{iπ} + 1 = 0, V − E + F = 2, ...) run along the bottom and under the text on the last
+page, and everything else, largest hole first, is figures (Platonic solids, knots, Hilbert
+curves, Lissajous curves, hypotrochoids, Maurer roses, the Petersen graph, ...), letters,
+numerals and symbols set by TeX at many sizes and a slight tilt, and dots. It fills
+whatever space the page leaves, like the garden; `density` sets how much there is.
+
+<img src="gallery/math.png" alt="a page with the math theme" width="500">
+
+```latex
+\usepackage[grown,theme=geometric]{florilegium}   % or theme=math; the whole document
+\florilegiumtheme{math}                            % or from the page this stands on
+```
+
+A document without a theme comes out byte for byte as it did before themes existed.
+
+## Less in the margin
+
+![seed 6 at density 1, 0.5, 0.2 and 0.05, and at intensity 0.5](gallery/dials.png)
+
+*Seed 6 at `density=1`, `0.5`, `0.2` and `0.05`, and at `intensity=0.5`.*
+
+A full garden is a lot to have beside an equation. Two options turn it down, with any
+theme:
+
+- **`density=0.4`** grows less: the loop stops at larger holes, keeps more paper around
+  each motif, and hangs fewer leaves and fillers. Low on the dial the plant itself thins
+  out: two main stems, then one, no footer; at `0.05` it is a single vine with its flower,
+  a couple of leaves and one or two sprays. With the math theme it means fewer things.
+- **`intensity=0.5`** paints the whole margin paler, the same way the ghost flowers behind
+  the garden are painted. It changes only the color, not the detail.
+
+```latex
+\usepackage[grown,density=0.4,intensity=0.6]{florilegium}
+```
+
+At the defaults (`1` and `1`) every page is exactly the page it was before.
+
+## One ornament in the text
+
+![\florilegiumornament](gallery/ornaments.png)
+
+Or no margin at all: `\florilegiumornament{leaf}` sets one primitive in the line, in a box
+the size of a letter, for example to open a paragraph. Each ornament in a document gets a
+shape of its own and keeps it from one build to the next; `seed=random` draws a new one
+every time the PDF is built, and `seed=7` a fixed one.
+
+```latex
+\usepackage[nomargin]{florilegium}       % ornaments only, no garden in the margin
+\florilegiumornament{leaf} A paragraph that opens with a leaf.
+\florilegiumornament[size=2.4em, ink=5B2A1F, angle=30, seed=random]{flower}
+```
+
+Any primitive works (`leaf`, `leaflet`, `flower`, `blossom`, `bud`, `bell`, `lily`, `cyme`,
+`umbel`, `butterfly`, `bee`, `bird`, `hedera`, `sparkle`, ...), and so do the current
+theme's (`crystal` with `geometric`; `knot`, `polyhedron`, `koch`, ... with `math`).
+
+## Both sides of the page
+
+![pages 2 and 3 of spread.tex](gallery/spread.png)
+
+*`spread.tex`, pages 2 and 3: a two-sided document with a wide outer margin. The garden
+grows on the left of the left-hand page and, mirrored, on the right of the right-hand page.
+The last page also switches to the geometric theme.*
+
+The garden grows in whichever side margin is wider, so there is nothing to set. In a
+two-sided document (`twoside` with a wide `outer` margin) it changes sides with the page. A
+one-sided document with a wide right margin gets it on the right of every page. A mirrored
+page is laid out as if seen in a mirror, then drawn through a reflection: the last
+transform that every point already passes through. It is exactly the reflection of the
+garden the same seed would grow on the left.
+
 ## In PostScript
 
 ![the two pages of postscript/florilegium.ps, seed 7](gallery/preview-postscript.png)
@@ -141,7 +244,8 @@ half-width is a procedure handed to the outline builder). Four things don't map:
   reals are single precision, so seed 7 here is a different garden from seed 7 in LaTeX.
 - **Text.** The file typesets its own two pages in Times. It knows where its headings are and
   where its text ends, so the copper flowers at the headings and the garden under the last
-  line work as they do in LaTeX. It has no initials, animation or authored composition.
+  line work as they do in LaTeX. It has no initials, animation, themes, mirrored pages,
+  density or intensity, ornaments in the text, or authored composition.
 
 <img src="gallery/printed.jpg" alt="two prints of florilegium.ps, two different gardens" width="500">
 
@@ -156,9 +260,9 @@ LuaLaTeX, one pass, about a second a page (two passes for `showcase.tex`, whose 
 the page count).
 
 ```sh
-make                        # the three PDFs
+make                        # the four PDFs
 make seed-7                 # one page from seed 7 -> build/seed-7.pdf
-make gallery                # gallery/seeds.png + seeds.gif, inks.png, seasons.png (python3, Pillow, pdftoppm)
+make gallery                # gallery/seeds.png + seeds.gif, inks.png, seasons.png, themes.png, dials.png (python3, Pillow, pdftoppm)
 make grow-6                 # growth animation of seed 6 -> build/grow-6.gif + .mp4 (ffmpeg)
 make grow-6 EXPLAIN=1       # the same with the free discs marked -> build/grow-6-explain.*
 ```
@@ -170,7 +274,7 @@ docker build -t florilegium-tex tools
 make RUN=tools/in-docker
 ```
 
-Or paste `florilegium.sty`, the six `.lua` files and one of the `.tex` files into an
+Or paste `florilegium.sty`, the nine `.lua` files and one of the `.tex` files into an
 [Overleaf](https://www.overleaf.com) project and set the compiler to LuaLaTeX.
 
 Use it in your own document:
@@ -178,13 +282,17 @@ Use it in your own document:
 ```latex
 \usepackage[grown]{florilegium}      % or plain \usepackage{florilegium} for the authored one
 % options for the grown one: sections (flowers at the headings), aging (two runs),
-% novisitors (no butterflies, bees, snails or birds)
+% novisitors (no butterflies, bees, snails or birds); for both: theme=geometric or theme=math,
+% density=0.4 (grown only), intensity=0.6
+% two-sided? nothing to set: the garden grows in the wider side margin
 \definecolor{ink}{HTML}{5B2A1F}      % optional: the hue of the whole palette (this is sepia)
 \definecolor{accent}{HTML}{B4662F}   % optional: the copper of the hairlines
 ...
 \florilegiuminitial[4]{T}his paragraph starts with a decorated T.
 ... a flower in the margin beside this line\florilegiumbloom ...
 \florilegiumage{0.8}                 % grown only: autumn from here on
+\florilegiumtheme{geometric}         % another theme, from the page this stands on
+\florilegiumornament{leaf}           % one leaf in the text, the size of a letter
 \florilegiumtextend                  % grown only: at the very end of the text
 ```
 
@@ -201,6 +309,9 @@ shift, rotation and scale:
   \begin{scope}[shift={(11,1)}]\florilegiumdraw{butterfly}{1.5}\end{scope}
 \end{tikzpicture}
 ```
+
+With a theme, its primitives can be drawn by name too: `\florilegiumdraw{crystal}{1.0}` under
+`theme=geometric` (see `specimen-geometric.tex`), `\florilegiumdraw{knot}{1.2}` under `theme=math`.
 
 ## How it works
 
@@ -255,6 +366,22 @@ gets garden *n*. Reproducibility is what makes the document stable enough to typ
 See [CLAUDE.md](CLAUDE.md) for a handoff-style map of the code, the tunables, and ideas not
 yet done.
 
+## Credits
+
+- The [Reddit post](https://www.reddit.com/r/LaTeX/comments/1xixznw/how_do_you_make_these_flowers_in_latex/)
+  that asked the question (see [Origin](#origin)).
+- The growth loop follows Wong, Zongker & Salesin,
+  [*Computer-Generated Floral Ornament*](https://dl.acm.org/doi/10.1145/280814.280948) (SIGGRAPH 1998).
+- The tone ramp is computed in [Oklab](https://bottosson.github.io/posts/oklab/), Björn Ottosson's
+  perceptual color space; the conversion matrices in `ink.lua` are his, released into the public domain.
+- The random numbers come from [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c),
+  Tommy Ettinger's public-domain generator.
+- `\florilegiumornament`, its `ink` and `seed=random` keys, and the `density` option answer
+  [issue #4](https://github.com/kevinraymond/florilegium/issues/4) from rubyFeedback.
+- The math theme's figures keep the names of the people they come from: Maurer's roses, Vogel's
+  model of the sunflower, Temple Fay's butterfly curve, the Petersen graph, Koch's snowflake,
+  Hilbert's curve, Lissajous figures, the gasket of Apollonius.
+
 ## License
 
-MIT.
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 Kevin Raymond.

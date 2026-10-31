@@ -1,4 +1,5 @@
 -- ink.lua -- the drawing core of florilegium: geometry in Lua, raw PDF out.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Everything is computed here and written as PDF path operators into a literal
 -- node, so TeX does no arithmetic at all. A drawing is made in a local frame
@@ -18,7 +19,8 @@ local rad = pi / 180
 local CM = 72 / 2.54                       -- bp per cm
 
 -- ---------------------------------------------------------------- random
--- mulberry32: small, fast, identical on every platform (math.random is not)
+-- mulberry32 (Tommy Ettinger, 2017, public domain): small, fast, identical on
+-- every platform (math.random is not)
 function M.rng(seed)
   local s = floor(seed) & 0xffffffff
   local r = {}
@@ -70,6 +72,8 @@ local function srgb_dec(c) return c <= 0.04045 and c / 12.92 or ((c + 0.055) / 1
 local function srgb_enc(c) return c <= 0.0031308 and 12.92 * c or 1.055 * c ^ (1 / 2.4) - 0.055 end
 local function cbrt(x) return x < 0 and -((-x) ^ (1 / 3)) or x ^ (1 / 3) end
 
+-- OKLCH is Oklab in polar form. Oklab and the matrices below are Björn
+-- Ottosson's ("A perceptual color space for image processing", 2020, public domain).
 local function rgb_to_oklch(r, g, b)
   r, g, b = srgb_dec(r), srgb_dec(g), srgb_dec(b)
   local l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
@@ -119,6 +123,7 @@ local REF_C = 0.175                        -- the chroma of the default ink at t
 local ramp = {}                            -- 101 precomputed "r g b" strings
 local hue, chroma_k = 263, 1
 local lift = 0                             -- ghost mode: tone t -> t + (1-t)*lift
+local pale = 0                             -- the whole margin paler (option intensity), the same way
 
 local function build_ramp()
   for i = 0, 100 do
@@ -149,14 +154,18 @@ function M.set_accent(r, g, b) accent = { r, g, b } end
 -- a color is a table {r,g,b}; tone(t) is a point on the ramp (ghost lift applied)
 function M.tone(t)
   t = t + (1 - t) * lift
+  if pale > 0 then t = t + (1 - t) * pale end
   local i = math.max(0, math.min(100, floor(t * 100 + 0.5)))
   return ramp[i]
 end
+local function toward_white(c, v) return { c[1] + (1 - c[1]) * v, c[2] + (1 - c[2]) * v, c[3] + (1 - c[3]) * v } end
 function M.accent(k)                        -- k>0 lightens toward white, k<0 darkens
   k = k or 0
-  if k >= 0 then return { accent[1] + (1 - accent[1]) * k, accent[2] + (1 - accent[2]) * k, accent[3] + (1 - accent[3]) * k } end
-  k = 1 + k
-  return { accent[1] * k, accent[2] * k, accent[3] * k }
+  local c
+  if k >= 0 then c = toward_white(accent, k)
+  else c = { accent[1] * (1 + k), accent[2] * (1 + k), accent[3] * (1 + k) } end
+  if pale > 0 then c = toward_white(c, pale) end
+  return c
 end
 -- paint fn() with a ramp at the hue of the accent instead (copper leaves in autumn)
 local accent_ramp, accent_key
@@ -178,6 +187,9 @@ M.white = { 1, 1, 1 }
 M.paper = { 0.995, 0.993, 0.985 }
 function M.set_lift(v) local old = lift lift = v return old end
 function M.get_lift() return lift end
+-- paint everything paler: tone t -> t + (1-t)*v, accents mixed toward white as much.
+-- Only the color: the level of detail still follows the ghost's lift alone.
+function M.set_pale(v) local old = pale pale = v return old end
 
 -- ---------------------------------------------------------------- transforms
 -- an affine map {a,b,c,d,e,f}: x' = a x + c y + e,  y' = b x + d y + f
@@ -190,6 +202,13 @@ local function mul(A, B)                   -- A then B, i.e. B(A(p))
            B[1] * A[5] + B[3] * A[6] + B[5], B[2] * A[5] + B[4] * A[6] + B[6] }
 end
 function M.set_transform(t) T = t end
+-- the page: cm from the lower-left corner of the paper -> bp. With `mirror` (the
+-- paper width in cm) x becomes mirror - x: a garden laid out in the left margin
+-- is drawn, reflected, in the right one
+function M.page_transform(mirror)
+  if mirror then return { -CM, 0, 0, CM, mirror * CM, 0 } end
+  return { CM, 0, 0, CM, 0, 0 }
+end
 function M.get_transform() return T end
 function M.push() stack[#stack + 1] = T end
 function M.pop() T = table.remove(stack) end

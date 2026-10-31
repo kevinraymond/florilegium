@@ -1,4 +1,5 @@
 -- flora.lua -- the primitives of florilegium, drawn with ink.lua.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Every primitive draws in its own local frame (centimeters, origin at its base
 -- or center, pointing along +y unless noted) under the current ink transform,

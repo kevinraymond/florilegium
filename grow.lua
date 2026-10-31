@@ -1,4 +1,5 @@
 -- grow.lua -- the grown composition of florilegium (LuaLaTeX only).
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- A plant, not a packing. Everything grows from one root in the bottom-left
 -- corner of the page:
@@ -23,6 +24,9 @@
 local ink = require("ink")
 local flora = require("flora")
 local M = {}
+-- the primitives of the current theme: flora itself, or a theme's own in front
+-- of it (see M.theme); every primitive in this file is called through F
+local F = flora
 
 local sqrt, cos, sin, atan, pi, floor, max, min, abs = math.sqrt, math.cos, math.sin, math.atan, math.pi, math.floor, math.max, math.min, math.abs
 local rad = pi / 180
@@ -57,10 +61,10 @@ local FLYSTEPS = 14     -- positions of a visitor flying in
 local motifs = {
   { name = "flower",  w = 3,   smin = 0.75, smax = 1.3, max = 3, hard = true, layer = L_BLOOM, spring = 0.12, autumn = 0.45,
     r = function(s) return 1.0 * s end, off = function(s) return 0 end,
-    draw = function(rng, s) flora.flower(rng, s) end },
+    draw = function(rng, s) F.flower(rng, s) end },
   { name = "lily",    w = 2,   smin = 0.8,  smax = 1.25, max = 2, hard = true, layer = L_BLOOM, upright = 0.4, spring = 0.1, autumn = 0.4,
     r = function(s) return 0.9 * s end, off = function(s) return 0.15 * s end,
-    draw = function(rng, s) flora.lily(rng, s) end },
+    draw = function(rng, s) F.lily(rng, s) end },
   { name = "blossoms", w = 3,  smin = 0.55, smax = 0.85, max = 5, layer = L_BLOOM, upright = 0.5, spring = 0.5, autumn = 0.5,
     r = function(s) return s end, off = function(s) return 0.6 * s end,
     draw = function(rng, s)
@@ -70,35 +74,35 @@ local motifs = {
         local d = s * rng.range(0.45, 0.8) * (k == 1 and 1 or rng.range(0.85, 1.1))
         local x, y = d * sin(a * rad), d * cos(a * rad)
         ink.moveto(0, 0) ink.curveto(0, d * 0.4, x * 0.6, y * 0.7, x, y) ink.stroke(tone(0.1), 0.35)
-        ink.push() ink.translate(x, y) flora.blossom(rng, s * rng.range(0.38, 0.5)) ink.pop()
+        ink.push() ink.translate(x, y) F.blossom(rng, s * rng.range(0.38, 0.5)) ink.pop()
       end
-      if rng.chance(0.6) then ink.push() ink.rotate(rng.sym(50)) ink.scale(0.5 * s) flora.bud(rng, 1) ink.pop() end
+      if rng.chance(0.6) then ink.push() ink.rotate(rng.sym(50)) ink.scale(0.5 * s) F.bud(rng, 1) ink.pop() end
     end },
   { name = "cyme",    w = 3,   smin = 1.0,  smax = 2.4, max = 6, layer = L_AIRY, upright = 0.6, spring = 1.3, autumn = 0.7,
     r = function(s) return 0.45 * s end, off = function(s) return 0.5 * s end,
-    draw = function(rng, s) flora.cyme(rng, s) end },
+    draw = function(rng, s) F.cyme(rng, s) end },
   { name = "sprig",   w = 2,   smin = 1.2,  smax = 2.8, max = 4, layer = L_AIRY, upright = 0.8, spring = 1.2,
     r = function(s) return 0.42 * s end, off = function(s) return 0.5 * s end,
-    draw = function(rng, s) flora.sprig(rng, s) end },
+    draw = function(rng, s) F.sprig(rng, s) end },
   { name = "umbel",   w = 1.5, smin = 0.8,  smax = 1.5, max = 3, hard = true, layer = L_AIRY, upright = 1.0, spring = 0.8, autumn = 0.8,
     r = function(s) return 0.75 * s end, off = function(s) return 0.6 * s end,
-    draw = function(rng, s) flora.umbel(rng, s) end },
+    draw = function(rng, s) F.umbel(rng, s) end },
   { name = "leaf",    w = 2,   smin = 0.9,  smax = 2.0, max = 8, layer = L_LEAF, upright = 0.2, spring = 1.3, autumn = 1.2,
     r = function(s) return 0.32 * s end, off = function(s) return 0.5 * s end,
-    draw = function(rng, s) ink.scale(s) flora.leaf(rng, { w = rng.range(0.22, 0.3), depth = rng.chance(0.6) and rng.range(0.4, 0.8) or 0 }) end },
+    draw = function(rng, s) ink.scale(s) F.leaf(rng, { w = rng.range(0.22, 0.3), depth = rng.chance(0.6) and rng.range(0.4, 0.8) or 0 }) end },
   { name = "bud",     w = 1,   smin = 0.45, smax = 0.75, max = 5, layer = L_BLOOM, upright = 0.5, spring = 3.5, autumn = 0.3,
     r = function(s) return 0.45 * s end, off = function(s) return 0.5 * s end,
-    draw = function(rng, s) flora.bud(rng, s) end },
+    draw = function(rng, s) F.bud(rng, s) end },
   { name = "bells",   w = 0.7, smin = 0.6,  smax = 0.95, max = 1, hard = true, layer = L_BLOOM, hang = true, spring = 0.5, autumn = 0.6,
     r = function(s) return 0.62 * s end, off = function(s) return 0 end,
     draw = function(rng, s)
-      flora.bell(rng, s)
+      F.bell(rng, s)
       ink.moveto(0, 0) ink.curveto(0.15 * s, 0.25 * s, 0.4 * s, 0.25 * s, 0.5 * s, 0.1 * s) ink.stroke(tone(0.1), 0.35)
-      ink.push() ink.translate(0.5 * s, 0.1 * s) flora.bell(rng, 0.75 * s) ink.pop()
+      ink.push() ink.translate(0.5 * s, 0.1 * s) F.bell(rng, 0.75 * s) ink.pop()
     end },
   { name = "tendril", w = 0.6, smin = 0.3,  smax = 0.5, max = 4, layer = L_AIRY, spring = 2, autumn = 1.3,
     r = function(s) return 1.0 * s end, off = function(s) return 1.0 * s end,
-    draw = function(rng, s) ink.rotate(90) flora.tendril(rng, s) end },
+    draw = function(rng, s) ink.rotate(90) F.tendril(rng, s) end },
   { name = "budding", w = 3,   smin = 0.55, smax = 0.9, max = 6, layer = L_BLOOM, upright = 0.6,
     spring = 1, summer = 0, autumn = 0,
     r = function(s) return 0.9 * s end, off = function(s) return 0.6 * s end,
@@ -109,24 +113,55 @@ local motifs = {
         local d = s * rng.range(0.5, 0.85)
         local x, y = d * sin(a * rad), d * cos(a * rad)
         ink.moveto(0, 0) ink.curveto(0, d * 0.4, x * 0.6, y * 0.7, x, y) ink.stroke(tone(0.1), 0.35)
-        ink.push() ink.translate(x, y) ink.rotate(-a * 0.6) flora.bud(rng, s * rng.range(0.45, 0.6)) ink.pop()
+        ink.push() ink.translate(x, y) ink.rotate(-a * 0.6) F.bud(rng, s * rng.range(0.45, 0.6)) ink.pop()
       end
     end },
   { name = "seedhead", w = 2,  smin = 0.45, smax = 0.75, max = 3, hard = true, layer = L_AIRY, upright = 0.6,
     spring = 0, summer = 0, autumn = 1,
     r = function(s) return 1.05 * s end, off = function(s) return 0 end,
-    draw = function(rng, s) flora.seedhead(rng, s) end },
+    draw = function(rng, s) F.seedhead(rng, s) end },
   { name = "butterfly", w = 0.8, smin = 1.1, smax = 1.5, max = 2, hard = true, layer = L_ACCENT, fly = true,
     r = function(s) return 0.5 * s end, off = function(s) return 0 end,
-    draw = function(rng, s, p) flora.butterfly(rng, s, p and { open = 0.3 + 0.7 * abs(cos(p * 5 * pi)) }) end },
+    draw = function(rng, s, p) F.butterfly(rng, s, p and { open = 0.3 + 0.7 * abs(cos(p * 5 * pi)) }) end },
   { name = "bee",     w = 0.8, smin = 0.7,  smax = 0.85, max = 2, hard = true, layer = L_ACCENT, fly = true,
     r = function(s) return 0.6 * s end, off = function(s) return 0 end,
-    draw = function(rng, s, p) flora.bee(rng, s, { trail = p == nil }) end },
+    draw = function(rng, s, p) F.bee(rng, s, { trail = p == nil }) end },
 }
 
-M.motifs = {}
-for _, m in ipairs(motifs) do M.motifs[m.name] = m end
 M.layers = { ghost = L_GHOST, stem = L_STEM, leaf = L_LEAF, airy = L_AIRY, bloom = L_BLOOM, accent = L_ACCENT }
+
+-- ---------------------------------------------------------------- themes
+-- A theme (theme-<name>.lua) replaces primitives by name and may reweight or
+-- add motif rows. It returns { flora = { name = fn, ... }, motifs = fn(rows, F) }:
+-- rows are copies of the rows above (keep their names; w = 0 retires one), F
+-- the theme's primitives with flora's behind them. Everything here draws
+-- through F, so the theme's `flower` grows wherever a flower would. A theme
+-- that is not a plant at all brings its own composition, page = fn(g, grow),
+-- which M.page hands the page to. No theme (nil, "" or "flora") is the garden
+-- as it always was.
+local base, themes, composition = motifs, {}, nil
+function M.theme(name)
+  if name == nil or name == "" or name == "flora" then
+    F, motifs, composition = flora, base, nil
+  else
+    local th = themes[name]
+    if not th then
+      local ok, t = pcall(require, "theme-" .. name)
+      if not ok then error("florilegium: no theme '" .. name .. "' (theme-" .. name .. ".lua): " .. tostring(t), 0) end
+      local tf = setmetatable({}, { __index = flora })
+      for k, fn in pairs(t.flora or {}) do tf[k] = fn end
+      local rows = {}
+      for i, m in ipairs(base) do rows[i] = {} for k, v in pairs(m) do rows[i][k] = v end end
+      th = { flora = tf, motifs = t.motifs and t.motifs(rows, tf) or rows, page = t.page }
+      themes[name] = th
+    end
+    F, motifs, composition = th.flora, th.motifs, th.page
+  end
+  M.flora, M.motifs = F, {}
+  for _, m in ipairs(motifs) do M.motifs[m.name] = m end
+  return F, composition
+end
+M.theme(nil)
 
 -- ---------------------------------------------------------------- region
 -- rects = { {x0,y0,x1,y1}, ... }, a union; shared edges count as open
@@ -146,6 +181,70 @@ local function border(rects, x, y)
     end
   end
   return best
+end
+
+-- the regions a garden may use, in page cm: the margin column, the footer band
+-- (its length drawn from `layout`) and, on the last page, the space under the text
+function M.regions(g, layout)
+  local col = { 0.3, 0.45, g.colright, g.ph - 0.5 }
+  local fx1 = g.textleft + (g.textright - g.textleft) * layout.range(0.42, 0.52)
+  local foot = { g.colright - 0.01, 0.4, fx1, min(1.75, g.footy - 0.45) }
+  local rects = { col, foot }
+  local spill
+  if g.spill == 1 and (g.spilly - 0.8) - (g.ybot + 0.6) > 2.5 then
+    spill = { g.colright - 0.01, g.ybot + 0.6, g.textright - 0.2, g.spilly - 0.8 }
+    rects[#rects + 1] = spill
+  end
+  return rects, col, foot, spill, fx1
+end
+
+-- the free space: points on a GRID lattice over the regions (x, y), and for each
+-- the radius of the largest disc there that stays inside them and clear of every
+-- proxy so far (free). disc(x, y, r, k) adds a proxy; free_at(x, y) reads it back.
+-- The lattice is global, so a disc only visits the cells near it.
+function M.field(rects)
+  local gx, gy, free, lat = {}, {}, {}, {}
+  local function key(ix, iy) return ix * 100000 + iy end
+  for _, r in ipairs(rects) do
+    for ix = floor(r[1] / GRID), floor(r[3] / GRID) do
+      for iy = floor(r[2] / GRID), floor(r[4] / GRID) do
+        local x, y = (ix + 0.5) * GRID, (iy + 0.5) * GRID
+        local k = key(ix, iy)
+        if not lat[k] then
+          local b = border(rects, x, y)
+          if b > 0 then
+            local i = #gx + 1
+            gx[i], gy[i], free[i] = x, y, b
+            lat[k] = i
+          end
+        end
+      end
+    end
+  end
+  local maxfree = 0
+  for i = 1, #free do if free[i] > maxfree then maxfree = free[i] end end
+  local f = { x = gx, y = gy, free = free }
+  function f.each_near(x, y, R, fn)
+    for ix = floor((x - R) / GRID), floor((x + R) / GRID) do
+      for iy = floor((y - R) / GRID), floor((y + R) / GRID) do
+        local i = lat[key(ix, iy)]
+        if i then fn(i) end
+      end
+    end
+  end
+  -- a proxy disc: cells count it at k of its radius (k < 1 lets things overlap)
+  function f.disc(x, y, r, k)
+    k = k or 0.85
+    f.each_near(x, y, r * k + maxfree, function(i)
+      local d = dist(gx[i], gy[i], x, y) - k * r
+      if d < free[i] then free[i] = d end
+    end)
+  end
+  function f.free_at(x, y)
+    local i = lat[key(floor(x / GRID), floor(y / GRID))]
+    return i and free[i] or -1
+  end
+  return f
 end
 
 -- ---------------------------------------------------------------- animation timing
@@ -227,10 +326,19 @@ end
 -- ---------------------------------------------------------------- page
 -- With g.anim set, the page is recorded instead of written, and the
 -- recording is returned with its events timed: { rec, total }.
+-- g.density (option density, 0..1, default 1) thins the garden: the loops stop at
+-- larger holes, proxies keep more room around them, fewer leaves and fillers.
 function M.page(g)
+  M.theme(g.theme)
+  if composition then return composition(g, M) end
+  local D = g.density or 1
+  -- low on the dial the structure thins out too: two main stems below 0.6, one
+  -- below 0.25; no footer below 0.2, no ghosts below 0.4, no snail or bird below 0.3
+  local NSTEM = D >= 0.6 and 3 or D >= 0.25 and 2 or 1
+  local FOOTER = D >= 0.2
   local rng = ink.rng(g.seed * 7919 + 13)
   local layout = rng.fork()                 -- decisions; primitives get their own forks
-  ink.set_transform({ ink.CM, 0, 0, ink.CM, 0, 0 })
+  ink.set_transform(ink.page_transform(g.mirror and g.pw))
 
   -- animation: each event's output is tagged { event, from, to }, visible
   -- while the event's progress is in [from, to)
@@ -249,6 +357,7 @@ function M.page(g)
   local vis = ink.rng(g.seed * 7919 + 101)
   local visiting = g.visitors == false and {} or
     { butterfly = vis.chance(0.75), bee = vis.chance(0.6), snail = vis.chance(0.4), bird = vis.chance(0.22) }
+  if D < 0.3 then visiting.snail, visiting.bird = false, false end
   -- the season (g.age: 0 spring, 0.5 summer, 1 autumn; nil is summer as it always
   -- was): a value for each season, blended; its own stream for what it adds
   local age = g.age
@@ -261,58 +370,11 @@ function M.page(g)
   local sea = ink.rng(g.seed * 7919 + 211)
   local blooms = {}                         -- the flowers, for the petals that fall in autumn
 
-  -- regions: margin column, footer band, and the space under the text on the last page
-  local col = { 0.3, 0.45, g.colright, g.ph - 0.5 }
-  local fx1 = g.textleft + (g.textright - g.textleft) * layout.range(0.42, 0.52)
-  local foot = { g.colright - 0.01, 0.4, fx1, min(1.75, g.footy - 0.45) }
-  local rects = { col, foot }
-  local spill
-  if g.spill == 1 and (g.spilly - 0.8) - (g.ybot + 0.6) > 2.5 then
-    spill = { g.colright - 0.01, g.ybot + 0.6, g.textright - 0.2, g.spilly - 0.8 }
-    rects[#rects + 1] = spill
-  end
-
-  -- grid on a global lattice, so a disc only has to visit nearby cells
-  local gx, gy, free, sdist, lat = {}, {}, {}, {}, {}
-  local function key(ix, iy) return ix * 100000 + iy end
-  for _, r in ipairs(rects) do
-    for ix = floor(r[1] / GRID), floor(r[3] / GRID) do
-      for iy = floor(r[2] / GRID), floor(r[4] / GRID) do
-        local x, y = (ix + 0.5) * GRID, (iy + 0.5) * GRID
-        local k = key(ix, iy)
-        if not lat[k] then
-          local b = border(rects, x, y)
-          if b > 0 then
-            local i = #gx + 1
-            gx[i], gy[i], free[i], sdist[i] = x, y, b, math.huge
-            lat[k] = i
-          end
-        end
-      end
-    end
-  end
-  local maxfree = 0
-  for i = 1, #free do if free[i] > maxfree then maxfree = free[i] end end
-  local function each_near(x, y, R, fn)
-    for ix = floor((x - R) / GRID), floor((x + R) / GRID) do
-      for iy = floor((y - R) / GRID), floor((y + R) / GRID) do
-        local i = lat[key(ix, iy)]
-        if i then fn(i) end
-      end
-    end
-  end
-  -- a proxy disc: cells count it at k of its radius (k < 1 lets things overlap)
-  local function disc(x, y, r, k)
-    k = k or 0.85
-    each_near(x, y, r * k + maxfree, function(i)
-      local d = dist(gx[i], gy[i], x, y) - k * r
-      if d < free[i] then free[i] = d end
-    end)
-  end
-  local function free_at(x, y)
-    local i = lat[key(floor(x / GRID), floor(y / GRID))]
-    return i and free[i] or -1
-  end
+  local rects, col, foot, spill, fx1 = M.regions(g, layout)
+  local fld = M.field(rects)
+  local gx, gy, free, each_near, disc, free_at = fld.x, fld.y, fld.free, fld.each_near, fld.disc, fld.free_at
+  local sdist = {}                          -- distance to the nearest stem point
+  for i = 1, #gx do sdist[i] = math.huge end
 
   -- stem points: {x, y, tx, ty, w}; a branch may start at any of them
   local spts = {}
@@ -354,11 +416,11 @@ function M.page(g)
         for i = 1, j do head[i] = pts[i] end
         head[j + 1] = { lerp(pts[j][1], pts[j + 1][1], u), lerp(pts[j][2], pts[j + 1][2], u) }
         ink.tag({ now, k / n, (k + 1) / n })
-        flora.stem(head, w0, lerp(w0, w1, k / n), nil, nil, 0.4)
+        F.stem(head, w0, lerp(w0, w1, k / n), nil, nil, 0.4)
       end
       ink.tag({ now, 1 })
     end
-    flora.stem(pts, w0, w1)
+    F.stem(pts, w0, w1)
     if anim then ink.tag({ now, 0 }) end
     for i = 1, #pts, 2 do disc(pts[i][1], pts[i][2], proxy or 0.1, 1) end
   end
@@ -417,7 +479,7 @@ function M.page(g)
   local amp = g.colright * 0.2
   local mains, mainev = {}, {}
   local tops = { g.ph - 2.6, g.ph * layout.range(0.6, 0.72), g.ph * layout.range(0.36, 0.48) }
-  for k = 1, 3 do
+  for k = 1, NSTEM do
     local f = ink.fbm1(layout, 2)
     local ph, lam = layout.range(0, 10), layout.range(6, 9)
     local x0 = root[1] + (k - 2) * 0.25
@@ -451,7 +513,7 @@ function M.page(g)
   end
   -- the footer stem: from the root along the bottom, tapering out to a hairline
   local footpts, footev = {}, nil
-  do
+  if FOOTER then
     local f = ink.fbm1(layout, 2)
     local ybase = (foot[2] + foot[4]) / 2 - 0.05
     local x = root[1]
@@ -468,14 +530,15 @@ function M.page(g)
   -- on the last page, branches arch out of the main stems into the space under
   -- the text, each ending in a flower
   local leafy = {}
-  for k = 1, 3 do leafy[k] = { pts = mains[k], big = true, ev = mainev[k] } end
+  for k = 1, NSTEM do leafy[k] = { pts = mains[k], big = true, ev = mainev[k] } end
   local arcs, arcev = {}, {}
   if spill then
     local sh = spill[4] - spill[2]
     local nb = max(1, floor(sh / 7))
+    if D < 1 then nb = floor(nb * D + 0.5) end
     for b = 1, nb do
       local y0 = spill[2] + sh * (b - 0.75) / nb
-      local si = layout.int(1, 3)
+      local si = layout.int(1, NSTEM)
       local src = mains[si]
       local best, bi = math.huge, 1
       for i, p in ipairs(src) do local d = abs(p[2] - y0) if d < best then best, bi = d, i end end
@@ -509,10 +572,10 @@ function M.page(g)
     local s = min(1.75, g.colright * 0.27)
     local fx, fy = p[1] + hx * 0.2, p[2] + hy * 0.2
     event({ kind = "bloom", parent = mainev[1], at = 1, size = s })
-    place(L_BLOOM, fx, fy, 90, function() flora.flower(rng.fork(), s) end)
+    place(L_BLOOM, fx, fy, 90, function() F.flower(rng.fork(), s) end)
     disc(fx, fy, 1.05 * s, 0.85)
     blooms[#blooms + 1] = { fx, fy, s }
-    for k = 2, 3 do
+    for k = 2, NSTEM do
       local pts = mains[k]
       local p2, q2 = pts[#pts], pts[#pts - 2]
       local ax, ay = norm(p2[1] - q2[1], p2[2] - q2[2])
@@ -522,11 +585,11 @@ function M.page(g)
         local s2 = layout.range(1.0, 1.2)
         event({ kind = "bloom", parent = mainev[2], at = 1, size = s2 })
         if tip == "bud" then
-          place(L_BLOOM, p2[1], p2[2], deg(ax, ay), function() flora.bud(rng.fork(), 0.95 * s2) end)
+          place(L_BLOOM, p2[1], p2[2], deg(ax, ay), function() F.bud(rng.fork(), 0.95 * s2) end)
         elseif tip == "seedhead" then
-          place(L_AIRY, p2[1] + ax * 0.15, p2[2] + ay * 0.15, 90, function() flora.seedhead(rng.fork(), 0.75 * s2) end)
+          place(L_AIRY, p2[1] + ax * 0.15, p2[2] + ay * 0.15, 90, function() F.seedhead(rng.fork(), 0.75 * s2) end)
         else
-          place(L_BLOOM, p2[1] + ax * 0.25 * s2, p2[2] + ay * 0.25 * s2, deg(ax, ay), function() flora.lily(rng.fork(), s2) end)
+          place(L_BLOOM, p2[1] + ax * 0.25 * s2, p2[2] + ay * 0.25 * s2, deg(ax, ay), function() F.lily(rng.fork(), s2) end)
         end
         disc(p2[1] + ax * 0.3 * s2, p2[2] + ay * 0.3 * s2, 0.95 * s2, 0.85)
         counts.lily = counts.lily + 1
@@ -534,11 +597,11 @@ function M.page(g)
         local s3 = layout.range(0.85, 1.0)
         event({ kind = "bloom", parent = mainev[3], at = 1, size = s3 })
         if tip == "bud" then
-          place(L_BLOOM, p2[1], p2[2], deg(ax, ay), function() flora.bud(rng.fork(), 0.9 * s3) end)
+          place(L_BLOOM, p2[1], p2[2], deg(ax, ay), function() F.bud(rng.fork(), 0.9 * s3) end)
         elseif tip == "seedhead" then
-          place(L_AIRY, p2[1], p2[2], 90, function() flora.seedhead(rng.fork(), 0.75 * s3) end)
+          place(L_AIRY, p2[1], p2[2], 90, function() F.seedhead(rng.fork(), 0.75 * s3) end)
         else
-          place(L_BLOOM, p2[1], p2[2], 90, function() flora.flower(rng.fork(), s3) end)
+          place(L_BLOOM, p2[1], p2[2], 90, function() F.flower(rng.fork(), s3) end)
           blooms[#blooms + 1] = { p2[1], p2[2], s3 }
         end
         disc(p2[1], p2[2], s3, 0.85)
@@ -550,7 +613,7 @@ function M.page(g)
     local p = pts[#pts]
     local s = layout.range(1.0, 1.25)
     event({ kind = "bloom", parent = arcev[b], at = 1, size = s })
-    place(L_BLOOM, p[1], p[2], 90, function() flora.flower(rng.fork(), s) end)
+    place(L_BLOOM, p[1], p[2], 90, function() F.flower(rng.fork(), s) end)
     disc(p[1], p[2], s, 0.85)
     counts.flower = counts.flower + 1
     blooms[#blooms + 1] = { p[1], p[2], s }
@@ -558,19 +621,20 @@ function M.page(g)
   -- ghosts: large pale flowers behind, given a little room so they show
   do
     local ng = layout.int(1, 2)
+    if D < 0.4 then ng = 0 end
     for k = 1, ng do
       local gxp = g.colright * layout.range(0.35, 0.65)
       local gyp = g.ph * (k == 1 and layout.range(0.15, 0.3) or layout.range(0.45, 0.6))
       local s = layout.range(1.3, 1.6)
       event({ kind = "bloom", phase = "ghost", i = k })
-      place(L_GHOST, gxp, gyp, 90, function() flora.ghost(0.62, function() flora.flower(rng.fork(), s) end) end)
+      place(L_GHOST, gxp, gyp, 90, function() F.ghost(0.62, function() F.flower(rng.fork(), s) end) end)
       disc(gxp, gyp, 0.8 * s, 0.6)
     end
   end
 
   -- a branch from stem point S to a motif at (bx,by) whose axis is (ax,ay)
   local function branch_to(S, bx, by, ax, ay, w0, ev)
-    local pts = flora.branch_path(layout, S[1], S[2], S[3], S[4], bx, by, ax, ay)
+    local pts = F.branch_path(layout, S[1], S[2], S[3], S[4], bx, by, ax, ay)
     local d = dist(S[1], S[2], bx, by)
     local w = min(S[5] * 0.7, w0)
     stem(pts, w, max(0.012, w * 0.45), 0.07)
@@ -584,7 +648,7 @@ function M.page(g)
         local a = deg(q[1] - p[1], q[2] - p[2]) + (j % 2 == 0 and 1 or -1) * layout.range(40, 60)
         local ls = layout.range(0.45, 0.75)
         event({ kind = "bloom", parent = ev, at = i / #pts, size = ls })
-        place(L_LEAF, p[1], p[2], a, function() ink.scale(ls) flora.leaflet(rng.fork()) end)
+        place(L_LEAF, p[1], p[2], a, function() ink.scale(ls) F.leaflet(rng.fork()) end)
         disc(p[1] + cos(a * rad) * ls * 0.5, p[2] + sin(a * rad) * ls * 0.5, 0.25 * ls, 0.7)
       end
     end
@@ -648,7 +712,7 @@ function M.page(g)
   if visiting.snail then
     local s, best, c = vis.range(0.75, 0.9), -1, nil
     for _ = 1, 12 do
-      local k = vis.int(1, 3)
+      local k = vis.int(1, NSTEM)
       local pts = mains[k]
       local i = vis.int(max(10, floor(#pts * 0.15)), max(11, floor(#pts * 0.45)))
       local side = vis.chance(0.5) and 1 or -1
@@ -672,7 +736,7 @@ function M.page(g)
       end
       local x, y, a = at(1)
       event({ kind = "bloom", parent = mainev[c.k], at = sa[c.i] / La, till_end = true })
-      place(L_ACCENT, x, y, a, function() ink.scale(c.side, 1) flora.snail(rng.fork(), s) end, at, 40)
+      place(L_ACCENT, x, y, a, function() ink.scale(c.side, 1) F.snail(rng.fork(), s) end, at, 40)
       disc(pts[c.i][1] + c.nx * 0.36 * s, pts[c.i][2] + c.ny * 0.36 * s, 0.5 * s, 1)
       counts.snail = 1
     end
@@ -680,7 +744,7 @@ function M.page(g)
   if visiting.bird then
     local s, best, c = vis.range(2.3, 2.7), -1, nil
     for _ = 1, 24 do
-      local k = vis.int(1, 3)
+      local k = vis.int(1, NSTEM)
       local pts = mains[k]
       local i = vis.int(floor(#pts * 0.25), floor(#pts * 0.75))
       local p = pts[i]
@@ -698,13 +762,13 @@ function M.page(g)
       local p = pts[c.i]
       local tx, ty = tangent(pts, c.i)
       local sa, La = ink.arclen(pts)
-      local twig = flora.branch_path(vis, p[1], p[2], tx, ty, c.ex, c.ey, c.dir, 0.1)
+      local twig = F.branch_path(vis, p[1], p[2], tx, ty, c.ex, c.ey, c.dir, 0.1)
       local tev = event({ kind = "stem", parent = mainev[c.k], at = sa[c.i] / La })
       stem(twig, 0.05, 0.02, 0.07)
       add_stem_points(twig, 0.05, 0.02, 2)
       local perch = twig[max(1, floor(#twig * 0.85))]
       event({ kind = "bloom", parent = tev, at = 1, span = 1.4 })
-      place(L_ACCENT, perch[1], perch[2], 90, function() flora.bird(rng.fork(), s, { facing = c.facing }) end,
+      place(L_ACCENT, perch[1], perch[2], 90, function() F.bird(rng.fork(), s, { facing = c.facing }) end,
         arrive(perch[1], perch[2], 90, 3.5, c.facing > 0 and 160 or 20, 0.6), FLYSTEPS)
       disc(c.cx, c.cy, 0.36 * s, 0.9)
       disc(perch[1] - c.facing * 0.35 * s, perch[2] + 0.15 * s, 0.2 * s, 0.9)
@@ -715,7 +779,7 @@ function M.page(g)
   -- ---------------------------------------------------------- 3. leaves at the nodes
   -- big stems get full leaves, alternating sides, smaller toward the top; the
   -- footer gets leaflets that thin out toward its end
-  leafy[#leafy + 1] = { pts = footpts, big = false, ev = footev }
+  if FOOTER then leafy[#leafy + 1] = { pts = footpts, big = false, ev = footev } end
   for _, st in ipairs(leafy) do
     local pts = st.pts
     local s, acc, side = 0, layout.range(0.6, 1.3), layout.chance(0.5) and 1 or -1
@@ -725,7 +789,7 @@ function M.page(g)
       s = s + dist(pts[i][1], pts[i][2], pts[i - 1][1], pts[i - 1][2])
       if s >= acc then
         local u = s / total
-        acc = acc + (st.big and layout.range(1.4, 2.2) or lerp(0.55, 1.4, u) * layout.range(0.8, 1.2))
+        acc = acc + (st.big and layout.range(1.4, 2.2) or lerp(0.55, 1.4, u) * layout.range(0.8, 1.2)) / D ^ 0.6
         side = -side
         local tx, ty = norm(pts[i + 1][1] - pts[i - 1][1], pts[i + 1][2] - pts[i - 1][2])
         local a = deg(tx, ty) + side * layout.range(35, 60)
@@ -747,13 +811,13 @@ function M.page(g)
             local copper = autumn > 0 and sea.chance(0.35 * autumn)
             place(L_LEAF, pts[i][1], pts[i][2], a, function()
               local function leaf()
-                ink.scale(Lf) flora.leaf(rng.fork(), { w = layout.range(0.22, 0.3), depth = lobed and layout.range(0.4, 0.8) or 0, bend = bend })
+                ink.scale(Lf) F.leaf(rng.fork(), { w = layout.range(0.22, 0.3), depth = lobed and layout.range(0.4, 0.8) or 0, bend = bend })
               end
-              if copper then ink.in_accent(leaf) elseif spring > 0 then flora.ghost(0.3 * spring, leaf) else leaf() end
+              if copper then ink.in_accent(leaf) elseif spring > 0 then F.ghost(0.3 * spring, leaf) else leaf() end
             end)
           else
             local bend = -side * layout.range(0.1, 0.3)
-            place(L_LEAF, pts[i][1], pts[i][2], a, function() ink.scale(Lf) flora.leaflet(rng.fork(), { bend = bend }) end)
+            place(L_LEAF, pts[i][1], pts[i][2], a, function() ink.scale(Lf) F.leaflet(rng.fork(), { bend = bend }) end)
           end
           for _, f in ipairs({ 0.3, 0.55, 0.8 }) do disc(pts[i][1] + ux * Lf * f, pts[i][2] + uy * Lf * f, 0.24 * Lf, 0.85) end
         end
@@ -766,8 +830,9 @@ function M.page(g)
   for _, r in ipairs(rects) do area = area + (r[3] - r[1]) * (r[4] - r[2]) end
   local af = max(1, area / 175)
   local caps = {}
-  for _, m in ipairs(motifs) do caps[m.name] = m.fly and m.max or floor(m.max * af + 0.5) end   -- visitors stay few
+  for _, m in ipairs(motifs) do caps[m.name] = m.fly and floor(m.max * min(1, 2 * D) + 0.5) or floor(m.max * af * D + 0.5) end   -- visitors stay few
   local nbranch = 0
+  local NBMAX = D < 1 and max(1, floor(40 * D)) or math.huge
 
 
   for _ = 1, 400 do
@@ -778,7 +843,7 @@ function M.page(g)
         if v > best then best, bi = v, i end
       end
     end
-    if not bi or free[bi] < SMALLEST then break end
+    if not bi or free[bi] < SMALLEST / sqrt(D) or nbranch >= NBMAX then break end
     local f, px, py = free[bi], gx[bi], gy[bi]
     -- statement motifs have a hard cap; the others only lose weight as they repeat
     local elig, wts, wsum = {}, {}, 0
@@ -821,7 +886,7 @@ function M.page(g)
         if pick.name == "flower" then blooms[#blooms + 1] = { ox, oy, s } end
       end
       counts[pick.name] = counts[pick.name] + 1
-      disc(px, py, pick.r(s), 0.85)
+      disc(px, py, pick.r(s) * (2 - D), 0.85)
     end
   end
 
@@ -842,7 +907,7 @@ function M.page(g)
           local sway, x0, y0 = sea.sym(0.6), b[1] + sea.sym(0.3), b[2] - 0.3 * b[3]
           nfall = nfall + 1
           event({ kind = "bloom", phase = "fall", i = nfall, span = 1.6 })
-          place(L_BLOOM, bx, by, pa, function() ink.scale(ps) flora.petal(rng.fork(), { tone = pt, heart = false }) end,
+          place(L_BLOOM, bx, by, pa, function() ink.scale(ps) F.petal(rng.fork(), { tone = pt, heart = false }) end,
             function(e)
               return lerp(x0, bx, e) + sway * sin(2 * pi * e), lerp(y0, by, e * e * (3 - 2 * e)), pa - 140 * (1 - e)
             end, 16)
@@ -856,14 +921,14 @@ function M.page(g)
   -- only right next to a stem, and not too many: a pair of leaflets at a node,
   -- a bud, or a few florets. Far from any stem, a copper accent or nothing.
   local accents, fills = 0, 0
-  local maxfill = floor(28 * af)
+  local maxfill = floor(28 * af * D)
   for _ = 1, 600 do
     local best, bi = -1, nil
     for i = 1, #gx do
       local v = free[i] * layout.range(0.85, 1.15)
       if v > best then best, bi = v, i end
     end
-    if not bi or free[bi] < FILLMIN then break end
+    if not bi or free[bi] < FILLMIN / D then break end
     local f, px, py = free[bi], gx[bi], gy[bi]
     local S, sd = nearest_stem(px, py)
     if sd < 0.75 and fills < maxfill then
@@ -878,14 +943,14 @@ function M.page(g)
         local ls = min(0.75, f * 1.6)
         for k = -1, 1, 2 do
           local a = base + k * layout.range(20, 35)
-          place(L_LEAF, S[1], S[2], a, function() ink.scale(ls * layout.range(0.8, 1)) flora.leaflet(rng.fork(), { bend = -k * 0.15 }) end)
+          place(L_LEAF, S[1], S[2], a, function() ink.scale(ls * layout.range(0.8, 1)) F.leaflet(rng.fork(), { bend = -k * 0.15 }) end)
         end
       elseif kind < 0.65 then
         local ox, oy = px - ax * f * 0.5, py - ay * f * 0.5
         ink.layer(L_STEM)
         ink.moveto(S[1], S[2]) ink.curveto(S[1] + S[3] * 0.15, S[2] + S[4] * 0.15, ox - ax * 0.1, oy - ay * 0.1, ox, oy)
         ink.stroke(tone(0.1), 0.4)
-        place(L_BLOOM, ox, oy, deg(ax, ay), function() flora.bud(rng.fork(), min(0.6, f * 1.7)) end)
+        place(L_BLOOM, ox, oy, deg(ax, ay), function() F.bud(rng.fork(), min(0.6, f * 1.7)) end)
       else
         -- a small cluster of florets on hairline stalks
         local n = layout.int(2, 4)
@@ -894,23 +959,23 @@ function M.page(g)
           ink.layer(L_STEM)
           ink.moveto(S[1], S[2]) ink.curveto(S[1] + S[3] * 0.1, S[2] + S[4] * 0.1, (S[1] + qx) / 2, (S[2] + qy) / 2 + 0.05, qx, qy)
           ink.stroke(tone(0.12), 0.25, 0.9)
-          place(L_BLOOM, qx, qy, 90, function() flora.floret(rng.fork(), min(0.11, f * 0.6) * layout.range(0.8, 1.1)) end)
+          place(L_BLOOM, qx, qy, 90, function() F.floret(rng.fork(), min(0.11, f * 0.6) * layout.range(0.8, 1.1)) end)
         end
       end
-    elseif sd >= 0.75 and accents < 6 and f > 0.22 and px < g.colright then
+    elseif sd >= 0.75 and accents < 6 * D and f > 0.22 and px < g.colright then
       accents = accents + 1
       event({ kind = "bloom", phase = "accent", i = accents, size = 0.3 })
       if layout.chance(0.6) then
-        place(L_ACCENT, px, py, 90, function() flora.sparkle(rng.fork(), 0.13) end)
+        place(L_ACCENT, px, py, 90, function() F.sparkle(rng.fork(), 0.13) end)
       else
-        place(L_ACCENT, px, py, 90, function() flora.rosette(rng.fork(), 0.12) end)
+        place(L_ACCENT, px, py, 90, function() F.rosette(rng.fork(), 0.12) end)
       end
     end
     disc(px, py, max(f, 0.3), 1)
   end
 
   -- ---------------------------------------------------------- 6. the footer's tail
-  do
+  if FOOTER then
     local e = footpts[#footpts]
     local x2 = e[1] + layout.range(1.6, 2.2)
     ink.layer(L_ACCENT)
@@ -927,7 +992,7 @@ function M.page(g)
     ink.moveto(c[1], c[2]) ink.curveto(c[3], c[4], c[5], c[6], c[7], c[8])
     ink.stroke(ink.accent(0), 0.3, 0.8)
     event({ kind = "bloom", parent = tail, at = 1, size = 0.3 })
-    place(L_ACCENT, x2 + 0.18, e[2], 90, function() flora.sparkle(rng.fork(), 0.12, { rays = false }) end)
+    place(L_ACCENT, x2 + 0.18, e[2], 90, function() F.sparkle(rng.fork(), 0.12, { rays = false }) end)
     ink.circle(x2 + 0.45, e[2], 0.025) ink.fill(ink.accent(0))
   end
 
