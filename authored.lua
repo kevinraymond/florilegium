@@ -10,7 +10,6 @@
 -- uses the same primitives and the same motif table.
 
 local ink = require("ink")
-local flora = require("flora")
 local grow = require("grow")
 local M = {}
 
@@ -103,7 +102,9 @@ end
 function M.page(g)
   local rng = ink.rng(g.seed * 7919 + 17)
   local jit = rng.fork()
-  ink.set_transform({ ink.CM, 0, 0, ink.CM, 0, 0 })
+  local F, own = grow.theme(g.theme)           -- the primitives: flora, or a theme's
+  if own then return own(g, grow) end          -- a theme with a composition of its own
+  ink.set_transform(ink.page_transform(g.mirror and g.pw))
   local function place(layer, x, y, a, fn)
     ink.layer(layer)
     ink.push() ink.translate(x, y) ink.rotate(a - 90) fn() ink.pop()
@@ -119,7 +120,7 @@ function M.page(g)
   end
   ink.layer(LY.stem)
   for _, name in ipairs({ "C", "B", "A" }) do
-    flora.stem(stems[name], STEMS[name].w[1], STEMS[name].w[2])
+    F.stem(stems[name], STEMS[name].w[1], STEMS[name].w[2])
   end
   -- the scroll at the root
   do
@@ -130,7 +131,7 @@ function M.page(g)
       local r = 0.55 * (1 - 0.85 * t) ^ 1.3
       pts[#pts + 1] = { ROOT[1] - 0.55 - r * cos(a), ROOT[2] + 0.05 + r * sin(a) }
     end
-    flora.stem(pts, 0.06, 0.012)
+    F.stem(pts, 0.06, 0.012)
   end
   -- footer stem
   local fx1 = g.textleft + (g.textright - g.textleft) * FOOT_END
@@ -142,7 +143,7 @@ function M.page(g)
       u = u * u * (3 - 2 * u)
       foot[#foot + 1] = { x, ROOT[2] + 0.1 + (0.95 - ROOT[2] - 0.1 + 0.2 * f(x / 3.5)) * u }
     end
-    flora.stem(foot, 0.065, 0.01)
+    F.stem(foot, 0.065, 0.01)
   end
 
   -- terminal flowers
@@ -160,7 +161,7 @@ function M.page(g)
   -- ghosts behind everything
   for _, gh in ipairs(GHOSTS) do
     local r = rng.fork()
-    place(LY.ghost, gh[1], gh[2], 90, function() flora.ghost(0.62, function() flora.flower(r, gh[3]) end) end)
+    place(LY.ghost, gh[1], gh[2], 90, function() F.ghost(0.62, function() F.flower(r, gh[3]) end) end)
   end
 
   -- leaves at the nodes
@@ -171,7 +172,7 @@ function M.page(g)
     local r = rng.fork()
     local bend = lf[3] * jit.range(0.08, 0.3)
     place(LY.leaf, x, y, a, function()
-      ink.scale(L) flora.leaf(r, { w = 0.26, depth = lf[5] and jit.range(0.45, 0.75) or 0, bend = bend })
+      ink.scale(L) F.leaf(r, { w = 0.26, depth = lf[5] and jit.range(0.45, 0.75) or 0, bend = bend })
     end)
   end
   -- leaflets along the footer, smaller toward its end
@@ -188,7 +189,7 @@ function M.page(g)
         local a = deg(tx, ty) + side * jit.range(35, 55)
         local r = rng.fork()
         local bend = -side * 0.2
-        place(LY.leaf, foot[i][1], foot[i][2], a, function() ink.scale(L) flora.leaflet(r, { bend = bend }) end)
+        place(LY.leaf, foot[i][1], foot[i][2], a, function() ink.scale(L) F.leaflet(r, { bend = bend }) end)
       end
     end
   end
@@ -200,9 +201,9 @@ function M.page(g)
     local ax, ay = norm(dx, dy + (m.upright or 0))
     local ox, oy = px - ax * m.off(s), py - ay * m.off(s)
     if m.hang then ox, oy = px - dx * 0.2 * s, py + 0.45 * s end
-    local bpts = flora.branch_path(jit, sx, sy, tx, ty, ox, oy, m.hang and dx or ax, m.hang and -0.3 or ay)
+    local bpts = F.branch_path(jit, sx, sy, tx, ty, ox, oy, m.hang and dx or ax, m.hang and -0.3 or ay)
     ink.layer(LY.stem)
-    flora.stem(bpts, w0, 0.014)
+    F.stem(bpts, w0, 0.014)
     local d = sqrt((ox - sx) ^ 2 + (oy - sy) ^ 2)
     if d > 1.0 then
       local i = floor(#bpts * 0.4)
@@ -210,7 +211,7 @@ function M.page(g)
       local a = deg(q[1] - p[1], q[2] - p[2]) + (jit.chance(0.5) and 1 or -1) * jit.range(40, 60)
       local ls = jit.range(0.45, 0.7)
       local r = rng.fork()
-      place(LY.leaf, p[1], p[2], a, function() ink.scale(ls) flora.leaflet(r) end)
+      place(LY.leaf, p[1], p[2], a, function() ink.scale(ls) F.leaflet(r) end)
     end
     local r = rng.fork()
     place(m.layer, ox, oy, m.hang and 90 or deg(ax, ay), function() m.draw(r, s) end)
@@ -232,7 +233,7 @@ function M.page(g)
   -- accents and the footer's copper tail
   for _, ac in ipairs(ACCENTS) do
     local r = rng.fork()
-    place(LY.accent, ac[2], ac[3], 90, function() flora[ac[1]](r, ac[1] == "sparkle" and 0.13 or 0.12) end)
+    place(LY.accent, ac[2], ac[3], 90, function() F[ac[1]](r, ac[1] == "sparkle" and 0.13 or 0.12) end)
   end
   do
     local e = foot[#foot]
@@ -240,7 +241,7 @@ function M.page(g)
     ink.layer(LY.accent)
     ink.moveto(e[1], e[2]) ink.curveto(e[1] + 0.6, e[2] + 0.05, x2 - 0.6, e[2] - 0.05, x2, e[2])
     ink.stroke(ink.accent(0), 0.3, 0.8)
-    place(LY.accent, x2 + 0.18, e[2], 90, function() flora.sparkle(rng.fork(), 0.12, { rays = false }) end)
+    place(LY.accent, x2 + 0.18, e[2], 90, function() F.sparkle(rng.fork(), 0.12, { rays = false }) end)
     ink.circle(x2 + 0.45, e[2], 0.025) ink.fill(ink.accent(0))
   end
 
@@ -249,12 +250,12 @@ function M.page(g)
     local vr = ink.rng(g.seed * 7919 + 103)
     for _, v in ipairs(VISITORS) do
       local r = vr.fork()
-      place(LY.accent, v[2], v[3], v[5], function() flora[v[1]](r, v[4]) end)
+      place(LY.accent, v[2], v[3], v[5], function() F[v[1]](r, v[4]) end)
     end
     local x, y, tx, ty = at(stems[SNAIL[1]], SNAIL[2])
     local r = vr.fork()
     place(LY.accent, x + ty * SNAIL[3] * 0.03, y - tx * SNAIL[3] * 0.03, deg(tx, ty), function()
-      ink.scale(SNAIL[3], 1) flora.snail(r, SNAIL[4]) end)
+      ink.scale(SNAIL[3], 1) F.snail(r, SNAIL[4]) end)
   end
 
   -- a safety clip: the column (a little past its edge) and the footer band

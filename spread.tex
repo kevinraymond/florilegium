@@ -1,0 +1,150 @@
+%% spread.tex -- a two-sided document: the garden follows the outer margin from page
+%% to page, and on the last page it is grown from another theme. LuaLaTeX, one pass:
+%%   lualatex spread.tex
+\documentclass[11pt,a4paper,twoside]{article}
+\renewcommand\rmdefault{cmr}\renewcommand\sfdefault{cmss}\renewcommand\ttdefault{cmtt}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsthm}
+\usepackage[a4paper,twoside,inner=22mm,outer=68mm,top=32mm,bottom=30mm,headsep=8mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage[grown,sections]{florilegium}
+
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[RO,LE]{\small\textsc{Two sides, two gardens}}
+\fancyfoot[RO,LE]{\small\thepage}
+\renewcommand\headrulewidth{0pt}
+\newcommand\code[1]{\texttt{\small #1}}
+\theoremstyle{definition}
+\newtheorem*{remark}{Remark}
+
+\begin{document}
+\section{Both sides of the page}
+
+This document is printed on both sides of the paper. Its outer margin is the wide one, so
+on this page, a right-hand page, the margin is on the right; turn the page and it is on the
+left. The garden follows it without being told: it grows in whichever side margin is the
+wider, and in a two-sided document that changes with every page. The document asks for
+nothing more than the usual two-sided layout:
+\begin{center}\code{\textbackslash documentclass[twoside]\{article\}}\\
+\code{\textbackslash usepackage[twoside,inner=22mm,outer=68mm]\{geometry\}}\end{center}
+
+\subsection{Where the margin is}
+
+In a two-sided document \LaTeX\ moves the text block by \code{\textbackslash oddsidemargin}
+on odd pages and by \code{\textbackslash evensidemargin} on even ones. When a page is
+shipped out, the package reads the same one, finds the left and right edges of the text,
+and compares the two margins. If the left one is the wider, nothing changes: this is the
+page the garden has always grown on. A one-sided document with a wide right margin is
+treated like a right-hand page, on every page.
+
+\subsection{A garden in a mirror}
+
+If the right margin is the wider, the page is laid out as if it were seen in a mirror. A
+point at $x$ centimeters from the left edge of the paper moves to $w - x$, where $w$ is the
+paper's width, so the text block's two edges trade places and the wide margin is on the
+left again. The growth code is not told any of this. It finds the column, the footer band
+and the free space under the text where it always does, grows its stems from a root in the
+bottom-left corner, and fills the holes one by one.
+
+Only the last step changes. Every point of every path is mapped from layout centimeters to
+PDF points by one affine transform before it is written, and on a mirrored page that
+transform reflects:
+\[
+  \begin{pmatrix} x' \\ y' \end{pmatrix}
+  = \frac{72}{2.54}\begin{pmatrix} -1 & 0 \\ 0 & 1 \end{pmatrix}
+    \begin{pmatrix} x \\ y \end{pmatrix}
+  + \frac{72}{2.54}\begin{pmatrix} w \\ 0 \end{pmatrix}.
+\]
+Everything goes through it: each petal and vein, the snail, which now crawls the other way,
+the bird, which faces the other way, and the copper ivy leaf in the header, whose stem
+runs out into the head rule toward the inside of the page. Line widths are given in
+absolute points and are not affected, and neither are the fills: a reflection reverses
+the direction of every outline, which turns each winding number into its negative, and
+the nonzero rule only asks whether it is zero.
+
+PDF could do the reflection itself: one \code{cm} operator in front of the drawing would
+reflect everything after it. The garden does not use \code{cm} anywhere. Each point is
+transformed in Lua before it is written, which is what keeps line widths in absolute
+points while a motif is scaled, and what lets a primitive called inside a TikZ scope read
+pgf's matrix and draw under it. The reflection is one more matrix in that chain, and the
+page's content stream gains no operator it did not have before: only its numbers differ.
+
+\begin{remark}
+The ivy leaf is the one place where this went wrong. It reports where its stem ends, so
+that the head rule can continue from that point, and it reports it in page coordinates,
+which are already reflected. The rule is then drawn in layout coordinates and reflected a
+second time, so on the first mirrored pages it started in the wrong margin. The fix is
+one line: reflect the point back before drawing the rule.
+\end{remark}
+
+\subsection{Same seed, same garden}
+
+A page's garden still comes from its seed, and the mirror changes none of the random
+draws. A mirrored page is therefore exactly the reflection of the page that the same seed
+would give in a left margin, petal for petal. On the last page, where the text ends early,
+the space under it is mirrored as well, so the branches that arch into it grow out of the
+garden on the correct side.
+
+The flowers beside the section headings work as before. A heading leaves an invisible mark
+in the text, the page box is searched for it at shipout, and the mark gives only a height;
+the side does not matter, so the copper flower lands beside the heading in either margin.
+
+The footer runs the other way too. Its stem leaves the root in the outer corner and
+runs along the bottom of the page toward the binding, thinning to a copper hairline under
+the text, and the header's rule runs from the ivy leaf in the outer margin across the top
+of the text block. The header's words and the page number are set by \code{fancyhdr}, on
+the outside of each page, with \code{\textbackslash fancyhead[RO,LE]}.
+
+\begin{remark}[Two pages, one picture]
+Seen as a spread, a two-sided document puts two gardens side by side, each on the outside
+of its page. They do not meet: the inner margins stay empty, and each garden has its own
+seed, its own root and its own header.
+\end{remark}
+
+\subsection{Checking that nothing else moved}
+
+A change like this one should leave every existing document exactly as it was, and that
+can be checked without looking. The drawing code runs outside \TeX\ as well, in a small
+Lua harness that replaces the three or four \TeX\ functions it calls, and writes the
+content stream of a page to a file. Forty-five pages, five seeds with and without the space
+under the text, in summer, in spring, in autumn with marks and without visitors, plus the
+authored composition, were written before the change and again after it, and compared
+byte for byte. They are identical: a page whose wider margin is on the left goes through
+the same arithmetic in the same order as before, and the identity transform it uses is
+the one it always used.
+
+The growth animation is checked the same way. It replays every stem and every motif at
+smaller sizes before the real one, restoring the random streams in between, and its last
+frame has to be the page, byte for byte. It still is, for mirrored pages and for the theme
+on the next page alike.
+
+\newpage
+\florilegiumtheme{geometric}
+\section{Another garden}
+
+From this page on, the garden grows from another set of primitives. The command
+\code{\textbackslash florilegiumtheme\{geometric\}} leaves a mark in the text, like a
+heading, so the theme changes from the page on which it stands; as an option of the
+package it applies to the whole document:
+\begin{center}\code{\textbackslash usepackage[grown,theme=geometric]\{florilegium\}}\end{center}
+
+The growth code never knew what it was drawing. It reads a table of motifs, each with the
+size of the disc it occupies, a weight and a function that draws it, and calls every
+primitive by name. A theme is a Lua file that replaces some of those primitives, adds
+rows to the table, or brings a composition of its own. Two come with the package:
+\begin{itemize}
+\item \emph{geometric}, on this page: the same plant cut from flat shapes. The stems run
+straight between their nodes, the leaves are kites and toothed polygons folded into a
+light and a dark facet, the flowers are rosettes of rhombi and star polygons, and
+crystals grow among them.
+\item \emph{math}, which is no plant at all: figures, symbols and equations cascading down
+the margin and along the bottom, a large figure in the corner, and families of figures
+that grow as they go, the Koch snowflake gaining a level, the cube truncating into the
+octahedron.
+\end{itemize}
+Two options turn any margin down: \code{density} thins it, to a single vine at
+$0.05$, and \code{intensity} pales it. The text ends here, and
+\code{\textbackslash florilegiumtextend} tells the garden so: it grows into the space below
+these lines as well.
+\florilegiumtextend
+\end{document}

@@ -1,0 +1,31 @@
+%% ornaments.tex -- \florilegiumornament: one primitive in the text, sized like a
+%% letter. LuaLaTeX: lualatex ornaments.tex  (make preview -> gallery/ornaments.png)
+\documentclass[11pt]{article}
+\renewcommand\rmdefault{cmr}\renewcommand\sfdefault{cmss}\renewcommand\ttdefault{cmtt}
+\usepackage[T1]{fontenc}
+\usepackage[paperwidth=130mm,paperheight=74mm,margin=7mm]{geometry}
+\usepackage[nomargin]{florilegium}
+\pagestyle{empty}
+\setlength\parindent{0pt}\setlength\parskip{5pt}\setlength\emergencystretch{2em}
+\newcommand\code[1]{\texttt{\small #1}}
+\begin{document}
+\florilegiumornament{leaf}\enspace A paragraph can open with one leaf the size of a
+letter, set with \code{\textbackslash florilegiumornament\{leaf\}}. Each ornament in a
+document gets a shape of its own,
+\florilegiumornament{leaf}\,\florilegiumornament{leaf}\,\florilegiumornament{leaf}\,\florilegiumornament{leaf},
+and keeps it from one build to the next; \code{seed=random} draws a new one every time.
+
+\florilegiumornament[size=2.4em]{leaf}\enspace\code{size=2.4em} makes it larger, \code{ink=5B2A1F} paints it in
+another color \florilegiumornament[ink=5B2A1F]{leaf}\,\florilegiumornament[ink=2F6B4F]{leaf}\,\florilegiumornament[ink=8E1B3A]{leaf}\,\florilegiumornament[ink=4B3B8F]{leaf},
+and \code{angle=30} turns it.
+
+Any primitive will do:
+\florilegiumornament{flower}\,\florilegiumornament{blossom}\,\florilegiumornament{bud}\,\florilegiumornament{bell}\,%
+\florilegiumornament{lily}\,\florilegiumornament{butterfly}\,\florilegiumornament{bee}\,\florilegiumornament{bird}\,%
+\florilegiumornament{hedera}\,\florilegiumornament{sparkle}\,\florilegiumornament{cyme}\,\florilegiumornament{umbel}.
+
+\begin{center}
+\florilegiumornament[size=3.6em]{flower}\qquad\florilegiumornament[size=3.6em,angle=-10]{leaf}\qquad
+\florilegiumornament[size=3.6em]{butterfly}\qquad\florilegiumornament[size=3.6em]{hedera}
+\end{center}
+\end{document}

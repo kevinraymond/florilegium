@@ -7,37 +7,51 @@ branch targets, parameters sampled) and a **grown** one (layout computed by a gr
 space-filling loop). Same primitives, same motif table. No images, no assets. The grown
 margin also reads the text (flowers at headings and marked lines, seasons over the
 document), pages get visitors, and paragraphs can open with a decorated initial;
-`showcase.tex` demonstrates all of it.
+`showcase.tex` demonstrates all of it. A theme swaps primitives by name
+(`theme-geometric.lua`: the same plant cut from flat, straight-edged shapes) or replaces
+the whole composition (`theme-math.lua`: figures, TeX symbols and equations cascading down
+the margin and along the bottom, from `figures.lua`); `density` (down to a single vine at
+0.05) and `intensity` turn any margin down; `\florilegiumornament` sets one primitive in the text (issue #4). The garden grows in
+the wider side margin, mirrored when that is the right one (two-sided documents);
+`spread.tex` shows that and a theme.
 
 ## Files
 
 | file | what |
 |---|---|
-| `florilegium.sty` | thin TeX layer: options `authored` (default) / `grown`, `nomargin`, `novisitors`, `sections`, `aging`; colors `ink` and `accent`; `\florilegiumdraw`, `\florilegiumtextend`, `\florilegiumbloom`, `\florilegiumage`, `\florilegiuminitial`, `\florilegiuminitialfont`, `\florilegiumframe`; the shipout hook. LuaLaTeX only. |
-| `florilegium.lua` | glue: page geometry from TeX dimens, colors, page seed, the TikZ transform (`\pgf@pt@aa..bb`, `\pgf@pt@x/y`), primitive dispatch, the header; text marks (whatsits) and the walk of `\ShipoutBox` that finds them; age; animation frames; the initial's placement and its invisible letter. |
-| `ink.lua` | drawing core: mulberry32 rng, 1-D gradient noise/fbm, OKLCH tone ramp, affine transform stack, path building (`smooth` = Catmull-Rom as Béziers, `taper`, `ribbon`, `blade`, `blob`), fill/stroke/clip with ExtGState opacity + multiply, numbered layers, `flush()` into one `pdf_literal` node. |
+| `florilegium.sty` | thin TeX layer: options `authored` (default) / `grown`, `nomargin`, `novisitors`, `sections`, `aging`, and key=value `theme=<name>`, `density=<0..1>`, `intensity=<0..1>` (via `\DeclareOption*` and `\florilegium@set@<key>`); colors `ink` and `accent`; `\florilegiumdraw`, `\florilegiumtextend`, `\florilegiumbloom`, `\florilegiumage`, `\florilegiumtheme`, `\florilegiumornament` (pgfkeys `size ink accent angle seed`), `\florilegiuminitial`, `\florilegiuminitialfont`, `\florilegiumframe`; `\if@twoside` to Lua at each shipout; the shipout hook. LuaLaTeX only. |
+| `florilegium.lua` | glue: page geometry from TeX dimens (odd/even side margin, mirror when the right margin is wider), colors, page seed, the TikZ transform (`\pgf@pt@aa..bb`, `\pgf@pt@x/y`), primitive dispatch (through the current theme), inline ornaments (`ORNAMENT` placement table), captions a composition returns (TikZ `\node`s, mirrored x mapped back), density/intensity (`ink.set_pale` around the margin), the header; text marks (whatsits) and the walk of `\ShipoutBox` that finds them (headings, blooms, theme changes); age; animation frames; the initial's placement and its invisible letter. |
+| `ink.lua` | drawing core: mulberry32 rng, 1-D gradient noise/fbm, OKLCH tone ramp, affine transform stack (`page_transform(mirror)` = layout cm → page bp, reflected for a right margin), `set_pale` (option intensity: tones and accents toward white, detail unchanged), path building (`smooth` = Catmull-Rom as Béziers, `taper`, `ribbon`, `blade`, `blob`), fill/stroke/clip with ExtGState opacity + multiply, numbered layers, `flush()` into one `pdf_literal` node. |
 | `flora.lua` | the primitives: `petal flower lily blossom floret bud bell leaf leaflet stem cyme sprig umbel seedhead tendril sparkle rosette hedera ghost`, the visitors `butterfly bee snail bird`, plus `branch_path`. |
-| `grow.lua` | grown composition: regions, grid, stems, marks, visitors on the stems, leaves at nodes, branch loop, falling petals, filler, footer tail; seasons; animation events. Also exports the **motif table** (`M.motifs`) and layer numbers used by `authored.lua`. |
+| `grow.lua` | grown composition: regions, grid, stems, marks, visitors on the stems, leaves at nodes, branch loop, falling petals, filler, footer tail; seasons; animation events. Also exports the **motif table** (`M.motifs`) and layer numbers used by `authored.lua`, `M.regions(g, layout)` and `M.field(rects)` (the free-space grid, shared with theme-math), and `M.theme(name)`, which sets the primitives (`F`), motif rows and optional composition of the current theme. |
+| `theme-geometric.lua` | the geometric theme: the grown plant with every primitive redrawn flat and straight-edged (`stem`: straight runs ~L/4 apart with mitered corners; `leaf`: kite or toothed polygon in a light and a dark facet, straight white veins; `flower`: rhombus rosette or layered star polygons; `lily bud bell blossom floret cyme sprig umbel tendril`(square spiral) `rosette hedera butterfly bee snail bird`), flat tones only; `motifs()` puts blossoms/budding/bells on straight stalks and adds a `crystal` row (flat-shaded Platonic solid). |
+| `figures.lua` | the math figures: `figures` (14: `maurer spirograph lissajous polyhedron knot gasket koch hilbert chords golden parabola petersen vogel fay`, each `pick(layout)` / `draw(rng, R, p)` / `caption(p)`), `families` (13 progressions: `values`, `label`, `title`, `pick`, `draw(rng, R, v, p)`), helpers `maurer phyllotaxis fay vogel hull_of` (faces from nearest-neighbor triples: uniform solids only) `truncate solid compass caption_width`. |
+| `theme-math.lua` | the math theme, a composition of its own (`page(g, grow)`): regions = column, a footer band to 72% of the text width, spill; 1. a large corner figure, 2. one or two families down the column, each figure larger than the last, copper arrows, 3. equations (TeX, `EQUATIONS`, base LaTeX only) along the footer and in rows under the text, 4. largest hole first: figure / TeX glyph (`GLYPHS`, scaled, tilted, colored) / dot, proxies at k 0.5–0.62 so things overlap; a size gradient toward the corner. `density` scales the count. |
 | `authored.lua` | authored composition: the hand-placed "score" (STEMS, LEAVES, BRANCHES, GHOSTS, VISITORS, SNAIL, ACCENTS, FOOT) for A4 with a 68 mm left margin. |
 | `initial.lua` | decorated initials: glyph outline via `fonts.handlers.otf.readers.loadshapes`, even-odd inside test, clearance grid, the vine over/under the letter, leaflets, flowers in the gaps, tile frame. |
 | `florilegium.tex` / `florilegium-grow.tex` | demo documents (authored / grown). Body text = `text-methods.tex` (+ `text-growth.tex` for grown) + `text-sharing.tex`; it describes the code, so **update it when the method changes**. |
 | `showcase.tex` | "A year in the margin": `[grown,sections,aging]`, an initial, `\florilegiumbloom`; each section describes the feature it shows. Two passes. |
-| `gallery.tex`, `tools/gallery.py` | one short page per variant (`\galleryink`, `\galleryage`) → `gallery/seeds.png` + `seeds.gif`, `inks.png`, `seasons.png`. |
+| `spread.tex` | "Two sides, two gardens": `twoside`, wide outer margin, `[grown,sections]`; page 3 switches to `\florilegiumtheme{geometric}` after a `\newpage`. `make preview` puts pages 2–3 side by side in `gallery/spread.png`. Its text describes the mirror and the themes; keep page 2 full (the `\newpage`) and page 3 short enough to spill. |
+| `specimen.tex` / `specimen-geometric.tex` | one of every primitive, flora / geometric theme (`gallery/specimen-geometric.png`). |
+| `ornaments.tex` | `\florilegiumornament` demo (`gallery/ornaments.png`). |
+| `gallery.tex`, `tools/gallery.py` | one short page per variant (`\galleryink`, `\galleryage`, `\gallerytheme`) → `gallery/seeds.png` + `seeds.gif`, `inks.png`, `seasons.png`, `themes.png`, `dials.png` (`--options density=0.4,...`, via `\PassOptionsToPackage`). |
 | `animation.tex`, `tools/animate.py` | growth animation: one page per frame (`\florilegiumframe`), parallel LuaLaTeX jobs, pdftoppm, ffmpeg → `build/grow-N.gif` + `.mp4`. `tools/animcheck.lua` checks that the last frame equals the page. |
 | `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image; `make RUN=tools/in-docker` when there's no local TeX. |
-| `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `grow.lua` has to be made there too. |
+| `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials, themes, mirror, density/intensity, ornaments or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `grow.lua` has to be made there too. |
 
 ## Build
 
 ```sh
 docker build -t florilegium-tex tools     # once, if there is no local TeX
-make RUN=tools/in-docker                  # the three PDFs (showcase: two passes for aging)
+make RUN=tools/in-docker                  # the four PDFs (showcase: two passes for aging)
+make preview RUN=tools/in-docker          # + ornaments.pdf, specimen-geometric.pdf, build/{geometric,math}.pdf -> gallery/*.png
 make seed-7 RUN=tools/in-docker           # one page for seed 7 -> build/seed-7.pdf
 make gallery RUN=tools/in-docker          # seeds, inks and seasons sheets (~40 s)
 make grow-6 RUN=tools/in-docker [EXPLAIN=1]            # ~45 s: build/grow-6.gif + .mp4
 make animation RUN=tools/in-docker                     # both, copied to gallery/growth*.gif
-tools/in-docker texlua tools/animcheck.lua 1 2 3       # last frame == page, byte for byte
-make preview                              # gallery/preview-*.png from the root PDFs
+tools/in-docker texlua tools/animcheck.lua 1 2 3       # last frame == page, byte for byte (also geometric, mirrored, density 0.4/0.05, math)
+tools/in-docker texlua tools/ident.lua build/ident-a    # 45 content streams, to diff -r before/after a change
+make preview                              # gallery/preview-*.png, spread.png, specimen-geometric.png, geometric.png, math.png
 make postscript [SEED=7]                  # the PostScript port via local gs -> build/postscript-7.pdf + gallery/preview-postscript.png
 ```
 
@@ -94,6 +108,36 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   `\begin{document}` and puts the mark into the typeset title (#8), so standard classes only.
 - **Aging needs the .aux**: `\flo@lastpage` is written at the end and read on the next run;
   until then every page is summer and LaTeX asks for a rerun.
+- **Themes**: every primitive in `grow.lua` and `authored.lua` is called through `F` (never
+  `flora.` directly), and the motif rows' `draw` functions use the module-level `F` upvalue
+  that `M.theme()` reassigns. A theme's `motifs(rows, F)` gets copies of the base rows: keep
+  their names (`counts.flower`, `counts.lily` and the marks look them up), set `w = 0` to
+  retire one. `M.theme(nil)` must stay exactly the old path: check unthemed pages are
+  byte-identical (harness below) after touching it.
+- **Theme compositions**: a theme with `page(g, grow)` gets the whole page (grow.page and
+  authored.page hand it over). It must follow the animation contract (record with tags,
+  replay closures from `rng`/`layout` only, return `{ rec, total }`) and may return
+  `captions = { {x, y, text, event, anchor, small, scale, rotate, color, opacity} }` in
+  layout cm; florilegium.lua sets them as TikZ nodes (scaled 10 pt with `transform shape`,
+  so any size works), swapping east/west anchors and negating rotations on mirrored pages.
+  Text that reads left to right must run in `-x` in layout coordinates on a mirrored page
+  (`fwd` in theme-math). Choose parameters with `layout` *before* `place`. TeX in captions
+  must not need packages the user may not load (no `\mathbb`, `\binom`).
+- **Density** must reduce to the old arithmetic at 1: only multiply/divide by `D` (or use
+  `2 - D`, `sqrt(D)`, `D ^ 0.6`), never add rng draws on the D = 1 path. Low on the dial the
+  structure itself thins (`NSTEM`, `FOOTER`, no ghosts < 0.4, no snail/bird < 0.3,
+  `NBMAX = 40 D` branches); florilegium.lua clamps at 0.03. **Intensity** is `ink.set_pale` around
+  the margin only (not initials or ornaments); `get_lift` (level of detail) ignores it.
+- **Ornaments** are numbered in document order for their seed; `seed=random` (os.time) is
+  the only non-deterministic path in the package, and it is opt-in.
+- **Mirror**: `g.mirror` means the layout is in mirrored coordinates (text edges swapped);
+  only `ink.page_transform(g.mirror and g.pw)` reflects. Anything that hands a position back
+  in page coordinates (`ink.to_page`, e.g. `flora.hedera`'s stem end) is already reflected and
+  must be mapped back (`pw - x`) before it is drawn again in layout coordinates.
+- **Byte-identity harness**: `tools/ident.lua <dir>` writes 45 content streams (5 seeds ×
+  spill × summer/novisitors/spring/autumn-marks, + authored) to a directory (~170 MB); run it
+  before and after a change that should move nothing (`build/ident-before`, `-after`) and
+  `diff -r`.
 - **Never wrap typeset text in `q`…`Q` page literals**: `Q` drops the `Tf` LuaTeX set
   inside and the rest of the page's text disappears. The initial's invisible letter uses
   `3 Tr` / `0 Tr` instead. (ActualText on a path-only span is ignored by poppler.)
@@ -162,6 +206,15 @@ To add a motif: write the primitive in `flora.lua` (origin at its base or center
 optionally `hard`/`hang`/`fly` and season multipliers, and `draw(rng, s)`. `authored.lua`
 can then place it by name, and `\florilegiumbloom[name]` can ask for it.
 
+To add a theme: write `theme-<name>.lua` returning `{ flora = { name = fn, ... },
+motifs = function(rows, F) ... return rows end }` (see `theme-geometric.lua`), or with
+`page = function(g, grow)` for a composition of its own (see `theme-math.lua`). Its primitives
+replace flora's by name with the same signature and frame (`flower(rng, s)` centered,
+`sprig(rng, L)` from its base along +y, ...); `motifs` may reweight rows and append new
+ones (their `draw` should call `F.x`). Then `\usepackage[grown,theme=name]` or
+`\florilegiumtheme{name}`; add the theme to a case in `tools/animcheck.lua`, and look at a
+page and a specimen sheet.
+
 ## Ideas not done
 
 - Proxies of 2–3 discs for long motifs (leaves, cymes) instead of one disc.
@@ -170,6 +223,8 @@ can then place it by name, and `\florilegiumbloom[name]` can ask for it.
 - Section flowers for KOMA/titlesec headings (only `\@sect`-based classes now).
 - Initials in the authored composition's style for the first page, and a bigger, framed
   title-page tile.
-- A mirrored right-margin variant for two-sided documents.
+- More themes: knots, fractals (Koch, Julia), graphs; a theme chosen from `\subjclass` /
+  `\keywords` (MSC code → theme), or per section (blackboard #4941 and its subtasks).
 - Form XObjects for repeated sub-shapes (florets) to cut the PDF size further.
-- A density/airiness option (SMALLEST, FILLMIN, caps) exposed in the `.sty`.
+- Plate: figures traced by a pen in the animation (they only scale in now); more figures
+  (Möbius strip, torus, Penrose tiles, Sierpiński); the footer band is left empty.

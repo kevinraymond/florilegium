@@ -1,0 +1,47 @@
+%% specimen-geometric.tex -- the primitives of the geometric theme (theme-geometric.lua),
+%% drawn with \florilegiumdraw. LuaLaTeX:
+%%   lualatex specimen-geometric.tex
+\documentclass{article}
+\usepackage[a4paper,margin=1cm]{geometry}
+\renewcommand\rmdefault{cmr}\renewcommand\sfdefault{cmss}\renewcommand\ttdefault{cmtt}
+\usepackage[T1]{fontenc}
+\usepackage[nomargin,theme=geometric]{florilegium}
+\pagestyle{empty}
+\newcommand\lab[2]{\node[font=\sffamily\scriptsize,gray] at #1 {#2};}
+\newcommand\at[3][0]{\begin{scope}[shift={#2},rotate=#1]#3\end{scope}}
+\begin{document}
+\begin{tikzpicture}[x=1cm,y=1cm]
+  \draw[gray!30] (0,0) rectangle (19,27.5);
+  \at{(2.5,24.5)}{\florilegiumdraw{flower}{1.8, {style=1, petals=5}}}
+  \at{(7,24.5)}{\florilegiumdraw{flower}{1.8, {style=1, petals=8}}}
+  \at{(11.5,24.5)}{\florilegiumdraw{flower}{1.8, {style=2, petals=6}}}
+  \at{(16,24.5)}{\florilegiumdraw{lily}{2}}
+  \lab{(9,22.2)}{flowers (rhombus rosettes, layered stars), lily}
+  \at[-15]{(1.5,17)}{\florilegiumdraw{leaf}{4, {lobes=4, depth=0.5}}}
+  \at[10]{(5.5,17)}{\florilegiumdraw{leaf}{4, {lobes=3, depth=0.8, w=0.26}}}
+  \at[-25]{(9.2,17)}{\florilegiumdraw{leaf}{3.6, {depth=0, w=0.18, bend=0.3}}}
+  \foreach \k in {0,...,4}{\pgfmathsetmacro\r{30*\k-60}\at[\r]{(12+0.9*\k,17.5)}{\florilegiumdraw{leaflet}{1.1}}}
+  \at{(17,19)}{\florilegiumdraw{crystal}{1.0}}
+  \lab{(9,15.6)}{leaves (toothed, entire), leaflets, a crystal}
+  \foreach \k in {0,...,3}{\at{(1.2+1.4*\k,14)}{\florilegiumdraw{blossom}{0.55}}}
+  \foreach \k in {0,...,5}{\at{(1+0.7*\k,12.6)}{\florilegiumdraw{floret}{0.16}}}
+  \at[-10]{(8,12.5)}{\florilegiumdraw{bud}{1.1}}
+  \at{(10,14.5)}{\florilegiumdraw{bell}{1.3}}
+  \at{(13,13)}{\florilegiumdraw{seedhead}{0.9, {drift=0}}}
+  \lab{(9,11.4)}{blossoms, florets, bud, bell, seed head}
+  \at{(1.5,6.5)}{\florilegiumdraw{cyme}{3, {side=-1}}}
+  \at{(4.5,6.5)}{\florilegiumdraw{sprig}{3.2}}
+  \at{(8.5,6.5)}{\florilegiumdraw{umbel}{2.2}}
+  \at{(12.5,7.5)}{\florilegiumdraw{tendril}{0.8}}
+  \at{(15,8)}{\florilegiumdraw{crystal}{1.0}}
+  \at{(17.5,8)}{\florilegiumdraw{crystal}{1.0}}
+  \lab{(9,4.4)}{cyme, sprig, umbel, tendril (a square spiral), crystals}
+  \at{(2,2.5)}{\florilegiumdraw{rosette}{0.3}}
+  \at{(3.5,2.5)}{\florilegiumdraw{hedera}{0.55}}
+  \at[10]{(7.5,2.6)}{\florilegiumdraw{butterfly}{2}}
+  \at[-30]{(10.5,3)}{\florilegiumdraw{bee}{1.1}}
+  \at[80]{(12.6,2.4)}{\florilegiumdraw{snail}{1.3}}
+  \at{(16,1.5)}{\florilegiumdraw{bird}{2.8}}
+  \lab{(9,0.5)}{rosette, the header fleuron, butterfly, bee, snail, bird}
+\end{tikzpicture}
+\end{document}

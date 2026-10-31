@@ -17,6 +17,7 @@ jobs:
             florilegium.tex
             florilegium-grow.tex
             showcase.tex
+            spread.tex
           latexmk_use_lualatex: true
       - uses: actions/upload-artifact@v4
         with:
@@ -25,6 +26,7 @@ jobs:
             florilegium.pdf
             florilegium-grow.pdf
             showcase.pdf
+            spread.pdf
 
   gallery:
     runs-on: ubuntu-latest
@@ -40,7 +42,9 @@ jobs:
           post_compile: >-
             python3 tools/gallery.py --seeds 1 2 3 4 5 6 --jobs 2 &&
             python3 tools/gallery.py --seed 6 --inks 2456C4 5B2A1F 2F6B4F 8E1B3A 4B3B8F 1D6E7A --jobs 2 &&
-            python3 tools/gallery.py --seed 6 --ages 0 0.33 0.67 1 --jobs 2
+            python3 tools/gallery.py --seed 6 --ages 0 0.33 0.67 1 --jobs 2 &&
+            python3 tools/gallery.py --seed 6 --themes flora geometric math --jobs 2 &&
+            python3 tools/gallery.py --seed 6 --options density=1 density=0.5 density=0.2 density=0.05 intensity=0.5 --jobs 2
       - uses: actions/upload-artifact@v4
         with:
           name: gallery

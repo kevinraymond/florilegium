@@ -5,6 +5,8 @@ each page and write a contact sheet (and, for seeds, a GIF with one frame per se
     python3 tools/gallery.py --seeds 1 2 3 4 5 6     -> gallery/seeds.png + seeds.gif
     python3 tools/gallery.py --seed 6 --inks 2456C4 5B2A1F   -> gallery/inks.png
     python3 tools/gallery.py --seed 6 --ages 0 0.5 1         -> gallery/seasons.png
+    python3 tools/gallery.py --seed 6 --themes flora math    -> gallery/themes.png
+    python3 tools/gallery.py --seed 6 --options density=1 density=0.4   -> gallery/dials.png
 Options: [--dpi 50] [--jobs 4] [--run tools/in-docker]
 """
 import argparse, os, shlex, subprocess, sys
@@ -15,12 +17,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BLUE = (36, 86, 196)
 
 def build(v, dpi, run):
-    """v = (name, label, seed, ink, age): one page -> build/<name>.png"""
-    name, _, seed, ink, age = v
+    """v = (name, label, seed, ink, age, theme, options): one page -> build/<name>.png"""
+    name, _, seed, ink, age, theme, opts = v
     job = f"build/{name}"
     defs = rf"\def\florilegiumseed{{{seed}}}"
+    if opts: defs += rf"\PassOptionsToPackage{{{opts}}}{{florilegium}}"
     if ink: defs += rf"\def\galleryink{{{ink}}}"
     if age is not None: defs += rf"\def\galleryage{{{age}}}"
+    if theme: defs += rf"\def\gallerytheme{{{theme}}}"
     cmd = shlex.split(run) + ["lualatex", "-interaction=nonstopmode", "-halt-on-error", f"-jobname={job}",
                               defs + r"\input{gallery.tex}"]
     r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
@@ -38,22 +42,31 @@ def season(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", nargs="+", type=int, default=[1, 2, 3, 4, 5, 6])
-    ap.add_argument("--seed", type=int, default=6, help="the seed of the ink and season sheets")
+    ap.add_argument("--seed", type=int, default=6, help="the seed of the ink, season and theme sheets")
     ap.add_argument("--inks", nargs="+", help="HTML colors: one page per ink -> gallery/inks.png")
     ap.add_argument("--ages", nargs="+", help="ages 0..1: one page per age -> gallery/seasons.png")
+    ap.add_argument("--themes", nargs="+", help="theme names: one page per theme -> gallery/themes.png")
+    ap.add_argument("--options", nargs="+", help="package options, e.g. density=0.4,intensity=0.6: one page each -> gallery/dials.png")
     ap.add_argument("--dpi", type=int, default=50)
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--run", default="", help="command prefix for lualatex, e.g. tools/in-docker")
     a = ap.parse_args()
     if a.inks:
         kind, cols = "inks", 3
-        variants = [(f"ink-{c}", "#" + c.upper(), a.seed, c, None) for c in a.inks]
+        variants = [(f"ink-{c}", "#" + c.upper(), a.seed, c, None, None, None) for c in a.inks]
     elif a.ages:
         kind, cols = "seasons", len(a.ages)
-        variants = [(f"age-{x}", season(x), a.seed, None, x) for x in a.ages]
+        variants = [(f"age-{x}", season(x), a.seed, None, x, None, None) for x in a.ages]
+    elif a.themes:
+        kind, cols = "themes", min(4, len(a.themes))
+        variants = [(f"theme-{t}", t, a.seed, None, None, t, None) for t in a.themes]
+    elif a.options:
+        kind, cols = "dials", min(5, len(a.options))
+        variants = [(f"options-{i}", o.replace(",", ", ").replace("=", " "), a.seed, None, None, None, o)
+                    for i, o in enumerate(a.options)]
     else:
         kind, cols = "seeds", 3
-        variants = [(f"seed-{s}", f"seed {s}", s, None, None) for s in a.seeds]
+        variants = [(f"seed-{s}", f"seed {s}", s, None, None, None, None) for s in a.seeds]
     os.makedirs(os.path.join(ROOT, "build"), exist_ok=True)
     os.makedirs(os.path.join(ROOT, "gallery"), exist_ok=True)
     with ThreadPoolExecutor(max_workers=a.jobs) as ex:
