@@ -1,0 +1,581 @@
+%% florilegium.tex  (v2)
+%% A procedurally generated "Delft blue" floral page margin, drawn entirely in TikZ.
+%% No images, no external assets. Compiles with pdflatex (also lualatex / xelatex).
+%% The body text of the document describes how the margin is drawn.
+%%
+%% Layout of this file
+%%   1. palette
+%%   2. primitives   petal, flower, leafshape (serrated / blade), dissected leaf,
+%%                   simple leaf + fern, floret, spray, arch spray, umbel, bell, bud,
+%%                   tendril, sparkle, eight-ray star, pendant, ornament, monogram
+%%   3. composition  two stalks, named anchor points, elements hung off them
+%%   4. page plumbing (eso-pic, per-page seed)
+%%   5. the text
+%%
+\documentclass[11pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[a4paper,left=68mm,right=22mm,top=32mm,bottom=30mm,headsep=8mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+\usetikzlibrary{shadings,fadings,decorations.markings,calc}
+\usepackage{eso-pic}
+
+%% ---------------------------------------------------------------- 1. palette
+\definecolor{ink}{HTML}{1F3E8C}   % the only hue; everything is ink!NN
+\definecolor{gold}{HTML}{C9A24C}  % single accent
+
+%% ------------------------------------------------------------- 2. primitives
+%% Every primitive is drawn at the origin of its own local frame and positioned
+%% by the caller with a scope. Every primitive calls rand/rnd, so no two
+%% instances are identical. Reminder: a coordinate component that contains
+%% parentheses must be wrapped in braces, ({sin(\a)},{cos(\a)}).
+
+%% --- petal: points +y, length 1.
+%% Outline = egg-shaped parametric curve x(t),y(t) multiplied by a ruffle
+%% rho(t) = a (1+sin t)/2 * sum_k c_k sin(f_k t + phi_k). The phases phi_k are
+%% drawn once per petal, so rho is deterministic and the same outline can be
+%% evaluated for the fill, the clip and the stroke. Layers:
+%% gradient body, dark brush streaks, pale streaks near the base, dark veins,
+%% inner rim (a wide stroke clipped to the inside), hairline outline.
+\newcommand\petal{%
+  \pgfmathsetmacro\pW{0.54+0.08*rand}%  half-width
+  \pgfmathsetmacro\pR{0.028+0.018*rnd}% ruffle amplitude
+  \pgfmathsetmacro\pPa{360*rnd}\pgfmathsetmacro\pPb{360*rnd}\pgfmathsetmacro\pPc{360*rnd}%
+  \pgfmathsetmacro\pSk{0.05*rand}%      skew of the tip
+  \def\petalpath{plot[smooth cycle,domain=-90:262,samples=44,variable=\t]
+    ({\pW*cos(\t)*(1+0.35*sin(\t))*(1+\pR*(1+sin(\t))*(sin(5*\t+\pPa)+0.5*sin(11*\t+\pPb)+0.25*sin(23*\t+\pPc)))+\pSk*(1+sin(\t))/2},
+     {0.5+0.5*sin(\t)*(1+\pR*(1+sin(\t))*(sin(5*\t+\pPa)+0.5*sin(11*\t+\pPb)+0.25*sin(23*\t+\pPc)))})}%
+  \shade[save path=\pp,top color=ink!95!black,middle color=ink!72,bottom color=ink!22] \petalpath;
+  \begin{scope}
+    \clip[use path=\pp];
+    \foreach \si in {1,...,9}{%
+      \pgfmathsetmacro\sa{50*rand}\pgfmathsetmacro\sd{0.55+0.4*rnd}\pgfmathsetmacro\sw{0.015+0.025*rnd}%
+      \fill[ink!90!black,opacity=0.22] (0,0.08)
+        .. controls ({\sd*0.3*sin(\sa)-\sw},\sd*0.4) .. ({\sd*0.8*sin(\sa)},{\sd*cos(\sa)})
+        .. controls ({\sd*0.3*sin(\sa)+\sw},\sd*0.4) .. cycle;}
+    \foreach \si in {1,...,6}{%
+      \pgfmathsetmacro\sa{45*rand}\pgfmathsetmacro\sd{0.25+0.35*rnd}\pgfmathsetmacro\sw{0.03+0.03*rnd}%
+      \fill[white,opacity=0.35] (0,0.02)
+        .. controls ({\sd*0.3*sin(\sa)-\sw},\sd*0.4) .. ({\sd*0.8*sin(\sa)},{\sd*cos(\sa)})
+        .. controls ({\sd*0.3*sin(\sa)+\sw},\sd*0.4) .. cycle;}
+    \foreach \si in {1,...,7}{%
+      \pgfmathsetmacro\sa{48*rand}\pgfmathsetmacro\sd{0.7+0.28*rnd}%
+      \draw[ink!85!black,opacity=0.5,line width=0.18pt] (0,0.05)
+        .. controls ({\sd*0.3*sin(\sa)},\sd*0.4) .. ({\sd*0.85*sin(\sa)},{\sd*cos(\sa)});}
+    \draw[use path=\pp,ink!85!black,opacity=0.4,line width=1.3pt];
+  \end{scope}
+  \draw[use path=\pp,ink!85!black,line width=0.3pt];
+}
+
+%% --- flower: five jittered petals, a pale fading heart, stamens. #1 = scale (petal length, cm)
+\newcommand\flower[1]{%
+  \begin{scope}[scale=#1,rotate=180*rand]
+    \foreach \fk in {0,...,4}{%
+      \pgfmathsetmacro\fa{\fk*72+7*rand}\pgfmathsetmacro\fl{0.93+0.1*rand}%
+      \begin{scope}[rotate=\fa,scale=\fl]\petal\end{scope}}
+    \fill[white,path fading=circle with fuzzy edge 20 percent,opacity=0.4] (0,0) circle (0.52);
+    \fill[white,path fading=circle with fuzzy edge 20 percent,opacity=0.8] (0,0) circle (0.34);
+    \foreach \fk in {1,...,16}{%
+      \pgfmathsetmacro\fa{\fk*22.5+9*rand}\pgfmathsetmacro\fr{0.17+0.12*rnd}%
+      \draw[ink!70,line width=0.22pt] (0,0.02) -- (\fa:\fr);
+      \fill[gold!90!black] (\fa:\fr) circle (0.02);}
+    \foreach \fk in {0,...,6}{\fill[gold!80!black] (\fk*51.4+20*rand:0.05) circle (0.016);}
+    \fill[ink!30] (0,0) circle (0.02);
+  \end{scope}}
+
+%% --- leafshape: points +x. #1 length, #2 width ratio, #3 serration amplitude,
+%% #4 number of teeth, #5 curl (tip offset as a fraction of length).
+%% Upper edge and lower edge are two parametric plots joined at a pointed tip.
+\newcommand\leafshape[5]{%
+  \pgfmathsetmacro\lL{#1}\pgfmathsetmacro\lW{#2}\pgfmathsetmacro\lS{#3}\pgfmathsetmacro\lN{#4}\pgfmathsetmacro\lC{#5}%
+  \pgfmathsetmacro\lPh{180*rnd}%
+  \def\leafpath{%
+    plot[smooth,domain=0:180,samples=36,variable=\t]
+      ({\lL*(1-cos(\t))/2},{\lW*\lL*sin(\t)*(1+\lS*(1-abs(sin(\lN*\t+\lPh))))+\lC*\lL*((1-cos(\t))/2)^2})
+    plot[smooth,domain=180:0,samples=36,variable=\t]
+      ({\lL*(1-cos(\t))/2},{-\lW*\lL*sin(\t)*(1+\lS*(1-abs(sin(\lN*\t+\lPh+40))))+\lC*\lL*((1-cos(\t))/2)^2})
+    -- cycle}%
+  \shade[save path=\lp,left color=ink!92!black,middle color=ink!70,right color=ink!32] \leafpath;
+  \begin{scope}
+    \clip[use path=\lp];
+    \draw[white,opacity=0.6,line width=0.3pt] (0,0) .. controls (0.5*\lL,0) .. (0.98*\lL,\lC*\lL);
+    \foreach \lt in {0.12,0.24,...,0.84}{%
+      \pgfmathsetmacro\lv{(1-\lt)*1.3*\lW*\lL}\pgfmathsetmacro\lx{\lt*\lL}\pgfmathsetmacro\ly{\lC*\lL*\lt*\lt}%
+      \draw[white,opacity=0.45,line width=0.18pt]
+        (\lx,\ly) .. controls (\lx+0.3*\lv,\ly+0.5*\lv) .. (\lx+0.55*\lv,\ly+\lv)
+        (\lx,\ly) .. controls (\lx+0.3*\lv,\ly-0.5*\lv) .. (\lx+0.55*\lv,\ly-\lv);}
+    \foreach \si in {1,2,3}{%
+      \pgfmathsetmacro\sx{\lL*(0.2+0.6*rnd)}\pgfmathsetmacro\sy{\lW*\lL*0.6*rand}%
+      \fill[ink!90!black,opacity=0.18] (0.05*\lL,0)
+        .. controls (0.5*\sx,\sy*0.6+0.02*\lL) .. (\sx,\sy) .. controls (0.5*\sx,\sy*0.6-0.02*\lL) .. cycle;}
+  \end{scope}
+  \draw[use path=\lp,ink!85!black,line width=0.26pt];
+}
+\newcommand\serleaf[1]{\leafshape{#1}{0.26+0.04*rand}{0.10}{6}{0.14*rand}}  % serrated leaflet
+\newcommand\blade[2]{\leafshape{#1}{0.07+0.02*rand}{0}{1}{#2}}              % grass blade, #2 = curl
+
+%% --- dissected leaf: a rib with three pairs of serrated lobes and a terminal lobe
+\newcommand\dissected[1]{%
+  \pgfmathsetmacro\dL{#1}%
+  \draw[ink!85!black,line width=0.4pt] (0,0) .. controls (0.5*\dL,0.02*\dL) .. (0.78*\dL,0.06*\dL);
+  \foreach \dp/\ds in {0.66/0.32,0.46/0.40,0.22/0.46}{%
+    \begin{scope}[shift={(\dp*\dL,0.03*\dL)},rotate=52+10*rand]\serleaf{\ds*\dL}\end{scope}
+    \begin{scope}[shift={(\dp*\dL,0.03*\dL)},rotate=-52+10*rand]\serleaf{\ds*\dL}\end{scope}}
+  \begin{scope}[shift={(0.76*\dL,0.06*\dL)},rotate=5*rand]\serleaf{0.34*\dL}\end{scope}}
+
+%% --- simple leaf (cheap; used for fern leaflets)
+\newcommand\leaf[1]{%
+  \pgfmathsetmacro\lfL{#1}\pgfmathsetmacro\lfW{(0.30+0.06*rand)*\lfL}\pgfmathsetmacro\lfC{0.10*rand*\lfL}%
+  \def\leafoutline{(0,0) .. controls (0.25*\lfL,\lfW) and (0.80*\lfL,0.85*\lfW+\lfC) .. (\lfL,\lfC)
+          .. controls (0.80*\lfL,-0.85*\lfW+\lfC) and (0.25*\lfL,-\lfW) .. cycle}%
+  \shade[left color=ink!92!black,middle color=ink!70,right color=ink!30] \leafoutline;
+  \begin{scope}\clip \leafoutline;
+    \draw[white,opacity=0.55,line width=0.3pt] (0,0) .. controls (0.5*\lfL,0.3*\lfC) .. (0.97*\lfL,\lfC);
+    \foreach \lt in {0.2,0.4,0.6,0.8}{%
+      \pgfmathsetmacro\lv{(1-\lt)*1.2*\lfW}\pgfmathsetmacro\lx{\lt*\lfL}\pgfmathsetmacro\ly{\lt*\lfC}%
+      \draw[white,opacity=0.4,line width=0.2pt]
+        (\lx,\ly) .. controls (\lx+0.25*\lv,\ly+0.45*\lv) .. (\lx+0.45*\lv,\ly+\lv)
+        (\lx,\ly) .. controls (\lx+0.25*\lv,\ly-0.45*\lv) .. (\lx+0.45*\lv,\ly-\lv);}
+  \end{scope}
+  \draw[ink!85!black,line width=0.3pt] \leafoutline;}
+
+%% --- fern: curved rib, leaflets placed by markings and tapered by their sequence number
+\newcommand\fern[1]{%
+  \pgfmathsetmacro\fnL{#1}%
+  \draw[ink!85!black,line width=0.45pt,
+        postaction={decorate,decoration={markings,
+          mark=between positions 0.06 and 0.94 step 0.055 with {%
+            \pgfmathtruncatemacro\mk{\pgfkeysvalueof{/pgf/decoration/mark info/sequence number}}%
+            \pgfmathsetmacro\ms{\fnL*0.24*(1-0.05*\mk)}%
+            \begin{scope}[rotate=58+8*rand]\leaf{\ms}\end{scope}
+            \begin{scope}[rotate=-58+8*rand]\leaf{\ms}\end{scope}}}}]
+    (0,0) .. controls (0.4*\fnL,0.05*\fnL) and (0.75*\fnL,0.25*\fnL) .. (\fnL,0.45*\fnL);}
+
+%% --- floret: a five-petal flower a few millimetres across
+\newcommand\floret{%
+  \pgfmathsetmacro\fph{72*rnd}%
+  \foreach \fk in {0,...,4}{\fill[ink!45,draw=ink!85!black,line width=0.15pt] (\fk*72+\fph:0.046) circle (0.03);}
+  \fill[ink!90!black] (0,0) circle (0.016);}
+
+%% --- spray: recursive ternary branching; florets and stray dots at the leaves.
+%% #1 angle, #2 length, #3 depth
+\newcommand\spray[3]{%
+  \ifnum#3>0
+    \pgfmathsetmacro\sb{12*rand}%
+    \draw[ink!80,line width=0.28pt] (0,0) to[bend left=\sb] (#1:#2);
+    \begin{scope}[shift={(#1:#2)}]
+      \pgfmathtruncatemacro\sd{#3-1}%
+      \foreach \sa in {-40,0,40}{%
+        \pgfmathsetmacro\sna{#1+\sa+14*rand}\pgfmathsetmacro\snl{#2*(0.6+0.12*rand)}%
+        \spray{\sna}{\snl}{\sd}}
+    \end{scope}
+  \else
+    \floret
+    \foreach \fk in {1,2}{\fill[ink!70] (360*rnd:0.1+0.08*rnd) circle (0.009);}
+  \fi}
+
+%% --- arch spray: one arching stalk with small sprays along it. #1 length
+\newcommand\archspray[1]{%
+  \pgfmathsetmacro\asL{#1}%
+  \draw[ink!85!black,line width=0.45pt,
+    postaction={decorate,decoration={markings,
+      mark=between positions 0.2 and 0.96 step 0.085 with {%
+        \pgfmathtruncatemacro\mk{\pgfkeysvalueof{/pgf/decoration/mark info/sequence number}}%
+        \pgfmathsetmacro\mside{ifthenelse(mod(\mk,2)==0,1,-1)}%
+        \pgfmathsetmacro\msa{\mside*(55+20*rand)}\pgfmathsetmacro\msl{0.26+0.08*rand}%
+        \spray{\msa}{\msl}{2}}}}]
+    (0,0) .. controls (0.25*\asL,0.5*\asL) and (0.75*\asL,0.6*\asL) .. (\asL,0.25*\asL);
+  \begin{scope}[shift={(\asL,0.25*\asL)}]\floret\end{scope}}
+
+%% --- umbel (Queen Anne's lace): rays fanning upward, each ending in a small secondary umbel
+\newcommand\umbel[1]{%
+  \pgfmathsetmacro\uS{#1}%
+  \foreach \ur in {1,...,11}{%
+    \pgfmathsetmacro\ua{25+\ur*11+6*rand}\pgfmathsetmacro\ul{\uS*(0.78+0.22*rnd)}%
+    \draw[ink!80,line width=0.26pt] (0,0) .. controls (\ua+5:0.5*\ul) .. (\ua:\ul);
+    \begin{scope}[shift={(\ua:\ul)}]
+      \foreach \us in {1,...,6}{%
+        \pgfmathsetmacro\ub{\ua-52+\us*17+5*rand}\pgfmathsetmacro\ubl{\uS*(0.15+0.07*rnd)}%
+        \draw[ink!80,line width=0.18pt] (0,0) -- (\ub:\ubl);
+        \fill[ink!55,draw=ink!85!black,line width=0.12pt] (\ub:\ubl) circle (0.021);}
+      \fill[ink!85] (0,0) circle (0.013);
+    \end{scope}}
+  \foreach \ub in {-30,-10,10,30}{\draw[ink!75,line width=0.25pt] (0,0) .. controls (\ub+90:0.16*\uS) .. (\ub+90+12:0.28*\uS);}}
+
+%% --- bell (campanula), hangs from the origin. #1 scale
+\newcommand\bell[1]{%
+  \begin{scope}[scale=#1,rotate=10*rand]
+    \def\belloutline{%
+      (0,0) .. controls (0.26,-0.08) and (0.36,-0.55) .. (0.44,-0.86)
+            .. controls (0.33,-0.75) and (0.24,-0.76) .. (0.15,-0.92)
+            .. controls (0.07,-0.79) and (-0.07,-0.79) .. (-0.15,-0.92)
+            .. controls (-0.24,-0.76) and (-0.33,-0.75) .. (-0.44,-0.86)
+            .. controls (-0.36,-0.55) and (-0.26,-0.08) .. cycle}%
+    \shade[left color=ink!95!black,middle color=ink!60,right color=ink!30] \belloutline;
+    \begin{scope}\clip \belloutline;
+      \foreach \bx in {-0.3,-0.1,0.1,0.3}{%
+        \draw[white,opacity=0.45,line width=0.25pt] (0.15*\bx,-0.05) .. controls (0.9*\bx,-0.45) .. (1.35*\bx,-0.95);}
+      \foreach \bx in {-0.2,0.2}{\draw[ink!90!black,opacity=0.35,line width=0.5pt] (0.1*\bx,-0.02) .. controls (0.8*\bx,-0.5) .. (1.2*\bx,-0.95);}
+    \end{scope}
+    \draw[ink!85!black,line width=0.3pt] \belloutline;
+    \foreach \ba in {-32,0,32}{%
+      \fill[ink!75,draw=ink!90!black,line width=0.2pt] (0,0.02) .. controls (\ba-90+22:0.26) and (\ba-90-22:0.26) .. cycle;}
+    \fill[ink!90!black] (0,0.02) circle (0.05);
+  \end{scope}}
+
+%% --- bud, points +y. #1 scale
+\newcommand\bud[1]{%
+  \begin{scope}[scale=#1,rotate=12*rand]
+    \def\budoutline{(0,0) .. controls (0.28,0.25) and (0.24,0.7) .. (0,0.95) .. controls (-0.24,0.7) and (-0.28,0.25) .. cycle}%
+    \shade[left color=ink!90!black,right color=ink!30] \budoutline;
+    \draw[ink!85!black,line width=0.3pt] \budoutline;
+    \draw[white,opacity=0.5,line width=0.25pt] (0,0.05) .. controls (0.12,0.4) .. (0.03,0.8);
+    \foreach \ba in {-35,0,35}{%
+      \fill[ink!70,draw=ink!90!black,line width=0.2pt] (0,-0.02) .. controls (\ba+90+24:0.5) and (\ba+90-24:0.5) .. cycle;}
+  \end{scope}}
+
+%% --- tendril: logarithmic spiral. #1 size
+\newcommand\tendril[1]{%
+  \draw[ink!80,line width=0.3pt] plot[domain=0:800,samples=70,variable=\t]
+    ({#1*0.06*exp(0.0036*\t)*cos(\t)},{#1*0.06*exp(0.0036*\t)*sin(\t)});}
+
+%% --- sparkles
+\newcommand\sparklepath[1]{% four-point star with concave sides
+    (0,#1) .. controls (0.07*#1,0.07*#1) and (0.07*#1,0.07*#1) .. (#1,0)
+           .. controls (0.07*#1,-0.07*#1) and (0.07*#1,-0.07*#1) .. (0,-#1)
+           .. controls (-0.07*#1,-0.07*#1) and (-0.07*#1,-0.07*#1) .. (-#1,0)
+           .. controls (-0.07*#1,0.07*#1) and (-0.07*#1,0.07*#1) .. cycle}
+\newcommand\sparkle[2]{% #1 radius, #2 colour
+  \fill[#2] \sparklepath{#1};
+  \begin{scope}[rotate=45,scale=0.45]\fill[#2] \sparklepath{#1};\end{scope}}
+\newcommand\starpath[1]{% eight rays, the vertical pair longer
+  (90:1.3*#1) .. controls (67.5:0.07*#1) and (67.5:0.07*#1) .. (45:0.45*#1)
+  .. controls (22.5:0.07*#1) and (22.5:0.07*#1) .. (0:#1)
+  .. controls (-22.5:0.07*#1) and (-22.5:0.07*#1) .. (-45:0.45*#1)
+  .. controls (-67.5:0.07*#1) and (-67.5:0.07*#1) .. (-90:1.3*#1)
+  .. controls (-112.5:0.07*#1) and (-112.5:0.07*#1) .. (-135:0.45*#1)
+  .. controls (-157.5:0.07*#1) and (-157.5:0.07*#1) .. (180:#1)
+  .. controls (157.5:0.07*#1) and (157.5:0.07*#1) .. (135:0.45*#1)
+  .. controls (112.5:0.07*#1) and (112.5:0.07*#1) .. cycle}
+\newcommand\bigsparkle[1]{% gold core fading to ink at the tips, rays and dots around it
+  \shade[inner color=gold!85!white,outer color=ink!85!black] \starpath{#1};
+  \draw[ink!85!black,line width=0.22pt] \starpath{#1};
+  \foreach \ha in {0,45,...,315}{\draw[ink!70,line width=0.22pt] (\ha:1.5*#1) -- (\ha:1.75*#1);\fill[ink!70] (\ha:1.85*#1) circle (0.02);}
+  \foreach \ha in {22.5,67.5,...,337.5}{\fill[ink!60] (\ha:1.25*#1) circle (0.014);}
+  \foreach \ha in {0,90,180,270}{\fill[gold] (\ha:2.15*#1) circle (0.025);}}
+
+%% --- pendant: a sparkle, a dotted chain, a diamond charm, a gold bead. #1 length
+\newcommand\pendant[1]{%
+  \sparkle{0.09}{gold}
+  \draw[ink!70,line width=0.3pt,dash pattern=on 0.4pt off 1.6pt] (0,-0.12) -- (0,-#1);
+  \fill[ink!85] (0,-#1) -- (0.07,-#1-0.13) -- (0,-#1-0.26) -- (-0.07,-#1-0.13) -- cycle;
+  \draw[ink!70,line width=0.3pt] (0,-#1-0.26) -- (0,-#1-0.36);
+  \fill[gold] (0,-#1-0.42) circle (0.04);}
+
+%% --- ornament: one of five small marks, chosen at random
+\newcommand\ornament{%
+  \pgfmathtruncatemacro\ok{random(0,4)}%
+  \ifcase\ok
+    \sparkle{0.11}{gold}%
+  \or \draw[ink!80,line width=0.28pt] (0,0) circle (0.075) (-0.075,0) -- (0.075,0) (0,-0.075) -- (0,0.075);%
+  \or \fill[ink!80] (0,0.11) -- (0.055,0) -- (0,-0.11) -- (-0.055,0) -- cycle;%
+  \or \fill[ink!75] (0,0.12) .. controls (0.07,0) and (0.07,-0.08) .. (0,-0.12) .. controls (-0.07,-0.08) and (-0.07,0) .. cycle;%
+  \or \foreach \oa in {0,60,...,300}{\fill[ink!70] (\oa:0.065) circle (0.011);}\fill[gold] (0,0) circle (0.018);%
+  \fi}
+
+%% --- monogram plaque
+\newcommand\monogram{%
+  \fill[gold,rounded corners=1.4pt] (-0.62,-0.76) rectangle (0.62,0.76);
+  \fill[ink!95!black,rounded corners=1.1pt] (-0.54,-0.68) rectangle (0.54,0.68);
+  \draw[white,opacity=0.7,line width=0.28pt,rounded corners=0.9pt] (-0.46,-0.6) rectangle (0.46,0.6);
+  \node[white] at (0,0.06) {\usefont{T1}{pzc}{mb}{it}\fontsize{17}{17}\selectfont K\kern-0.22em R};
+  \draw[gold,line width=0.3pt] (-0.3,-0.42) .. controls (-0.1,-0.52) and (0.1,-0.32) .. (0.3,-0.42);
+  \fill[gold] (0,-0.42) circle (0.025);}
+
+%% ------------------------------------------------------------ 3. composition
+\newcommand\margingarden{%
+\begin{tikzpicture}[overlay,line cap=round,line join=round,x=1cm,y=1cm]
+  \pgfmathsetseed{\number\value{page}*97+1030}% deterministic per page (keep < 16384)
+  \begin{scope}
+    \clip (0,0) rectangle (6.4,29.7);
+
+    %% companion stalk: thin, with grass blades, behind everything
+    \draw[ink!80!black,line width=0.5pt,
+      postaction={decorate,decoration={markings,
+        mark=between positions 0.06 and 0.96 step 0.1 with {%
+          \pgfmathtruncatemacro\mk{\pgfkeysvalueof{/pgf/decoration/mark info/sequence number}}%
+          \pgfmathsetmacro\mside{ifthenelse(mod(\mk,2)==0,1,-1)}%
+          \pgfmathsetmacro\mcurl{0.3*rand}\pgfmathsetmacro\mlen{1.0+0.8*rnd}%
+          \begin{scope}[rotate=\mside*(30+18*rand)]\blade{\mlen}{\mcurl}\end{scope}}}}]
+      plot[smooth,tension=0.8] coordinates {%
+        (2.1+0.3*rand,0.3) (2.9+0.3*rand,3.0) (1.9+0.3*rand,6.0) (2.9+0.3*rand,9.0) (2.0+0.3*rand,12.3)
+        (3.0+0.3*rand,15.5) (2.1+0.3*rand,18.8) (3.1+0.3*rand,21.9) (2.2+0.3*rand,25.0) (2.6+0.3*rand,28.2)};
+
+    %% main vine: serrated leaves hung along it; named anchors f1..f6 for branches
+    \draw[ink!85!black,line width=0.9pt,
+      postaction={decorate,decoration={markings,
+        mark=between positions 0.04 and 0.98 step 0.06 with {%
+          \pgfmathtruncatemacro\mk{\pgfkeysvalueof{/pgf/decoration/mark info/sequence number}}%
+          \pgfmathsetmacro\mside{ifthenelse(mod(\mk,2)==0,1,-1)}%
+          \pgfmathsetmacro\msz{0.5+0.4*rnd}%
+          \begin{scope}[rotate=\mside*(52+14*rand)]\serleaf{\msz}\end{scope}}}},
+      postaction={decorate,decoration={markings,
+        mark=at position 0.10 with {\coordinate (f1);},
+        mark=at position 0.30 with {\coordinate (f2);},
+        mark=at position 0.46 with {\coordinate (f3);},
+        mark=at position 0.62 with {\coordinate (f4);},
+        mark=at position 0.78 with {\coordinate (f5);},
+        mark=at position 0.93 with {\coordinate (f6);}}}]
+      plot[smooth,tension=0.75] coordinates {%
+        (2.7+0.3*rand,0.6) (2.2+0.3*rand,3.2) (3.2+0.3*rand,5.8) (2.3+0.3*rand,8.6)
+        (3.3+0.3*rand,11.2) (2.4+0.3*rand,14.0) (3.4+0.3*rand,16.7) (2.5+0.3*rand,19.4)
+        (3.5+0.3*rand,22.1) (2.7+0.3*rand,24.6) (3.1+0.3*rand,27.2)};
+
+    %% side branches
+    \draw[ink!85!black,line width=0.7pt] (f1) to[out=20,in=-120]  ++(1.3,1.0)   coordinate (b1);
+    \draw[ink!85!black,line width=0.7pt] (f2) to[out=200,in=60]   ++(-1.4,-0.7) coordinate (b2);
+    \draw[ink!85!black,line width=0.7pt] (f2) to[out=170,in=-30]  ++(-1.0,0.9)  coordinate (b2b);
+    \draw[ink!85!black,line width=0.7pt] (f3) to[out=-10,in=160]  ++(1.3,-0.4)  coordinate (b3);
+    \draw[ink!85!black,line width=0.7pt] (f4) to[out=20,in=-110]  ++(1.5,1.1)   coordinate (b4);
+    \draw[ink!85!black,line width=0.7pt] (f4) to[out=160,in=-40]  ++(-1.2,1.0)  coordinate (b4b);
+    \draw[ink!85!black,line width=0.7pt] (f5) to[out=10,in=-140]  ++(1.0,0.5)   coordinate (b5);
+    \draw[ink!85!black,line width=0.7pt] (f5) to[out=200,in=40]   ++(-1.3,-0.9) coordinate (b5b);
+    \draw[ink!85!black,line width=0.7pt] (f6) to[out=160,in=-60]  ++(-1.1,1.2)  coordinate (b6);
+    \draw[ink!85!black,line width=0.7pt] (f6) to[out=30,in=-130]  ++(1.4,0.9)   coordinate (b6b);
+
+    %% airy things (behind): ferns, arch sprays, sprays, umbels, tendrils
+    \begin{scope}[shift={(b5)},rotate=25]\fern{2.4}\end{scope}
+    \begin{scope}[shift={(b3)},rotate=-15]\fern{1.8}\end{scope}
+    \begin{scope}[shift={($(f6)+(0.9,-1.2)$)},rotate=35]\archspray{3.2}\end{scope}
+    \begin{scope}[shift={($(f4)+(0.3,-2.6)$)},rotate=60]\archspray{2.1}\end{scope}
+    \begin{scope}[shift={($(f2)+(1.0,0.9)$)},rotate=20]\archspray{2.4}\end{scope}
+    \begin{scope}[shift={($(f1)+(-1.2,0.3)$)},rotate=80,xscale=-1]\archspray{2.0}\end{scope}
+    \begin{scope}[shift={(b1)}]\spray{70}{0.7}{3}\end{scope}
+    \begin{scope}[shift={(b4b)}]\spray{125}{0.6}{3}\end{scope}
+    \begin{scope}[shift={(b5b)}]\spray{250}{0.55}{3}\end{scope}
+    \begin{scope}[shift={(0.8,27.1)}]\spray{95}{0.5}{2}\end{scope}
+    \begin{scope}[shift={($(f5)+(0.2,-1.4)$)}]\umbel{1.7}\end{scope}
+    \begin{scope}[shift={(4.4,5.0)}]\umbel{1.4}\end{scope}
+    \begin{scope}[shift={(5.0,13.2)}]\umbel{1.1}\end{scope}
+    \begin{scope}[shift={(4.7,23.2)}]\tendril{0.5}\end{scope}
+    \begin{scope}[shift={(1.5,17.9)},xscale=-1]\tendril{0.45}\end{scope}
+    \begin{scope}[shift={(4.9,8.5)}]\tendril{0.5}\end{scope}
+    \begin{scope}[shift={(0.9,5.1)},xscale=-1]\tendril{0.45}\end{scope}
+
+    %% foliage: dissected leaves and blades
+    \begin{scope}[shift={(b6b)},rotate=-28]\dissected{1.6}\end{scope}
+    \begin{scope}[shift={($(f6)+(-0.5,-2.0)$)},rotate=125]\dissected{1.5}\end{scope}
+    \begin{scope}[shift={($(f4)+(-0.9,0.3)$)},rotate=150]\dissected{1.3}\end{scope}
+    \begin{scope}[shift={($(f1)+(0.6,-0.3)$)},rotate=-30]\dissected{1.4}\end{scope}
+    \begin{scope}[shift={(f3)},rotate=200]\dissected{1.2}\end{scope}
+    \begin{scope}[shift={(f6)},rotate=100]\blade{1.8}{0.3}\end{scope}
+    \begin{scope}[shift={(f1)},rotate=110]\blade{2.0}{-0.3}\end{scope}
+    \begin{scope}[shift={(0.8,3.0)},rotate=80]\blade{2.4}{0.35}\end{scope}
+    \begin{scope}[shift={(1.4,22.4)},rotate=75]\blade{2.2}{-0.3}\end{scope}
+
+    %% bells and buds
+    \begin{scope}[shift={(b2)}]\bell{0.95}\end{scope}
+    \begin{scope}[shift={($(b2)+(0.55,0.25)$)}]\bell{0.75}\end{scope}
+    \begin{scope}[shift={(b2b)},rotate=-20]\bud{0.8}\end{scope}
+    \begin{scope}[shift={(0.9,25.4)},rotate=-15]\bud{0.8}\end{scope}
+    \begin{scope}[shift={(0.8,10.6)},rotate=20]\bud{0.7}\end{scope}
+
+    %% monogram and pendants
+    \begin{scope}[shift={(1.0,15.6)}]\monogram\end{scope}
+    \begin{scope}[shift={(1.0,14.7)}]\pendant{0.9}\end{scope}
+    \begin{scope}[shift={(0.45,28.6)}]\pendant{2.2}\end{scope}
+    \begin{scope}[shift={(5.7,24.3)}]\pendant{1.6}\end{scope}
+    \begin{scope}[shift={(5.6,9.3)}]\pendant{1.3}\end{scope}
+    \begin{scope}[shift={(0.5,12.0)}]\pendant{1.5}\end{scope}
+
+    %% flowers last, in front
+    \begin{scope}[shift={(b6)}]\flower{1.35}\end{scope}
+    \begin{scope}[shift={(b4)}]\flower{1.05}\end{scope}
+    \begin{scope}[shift={($(f2)+(1.3,0.4)$)}]\flower{0.85}\end{scope}
+
+    %% scattered ornaments
+    \foreach \oi in {1,...,18}{%
+      \pgfmathsetmacro\ox{0.3+5.6*rnd}\pgfmathsetmacro\oy{0.8+27.6*rnd}\pgfmathsetmacro\orot{360*rnd}%
+      \begin{scope}[shift={(\ox,\oy)},rotate=\orot]\ornament\end{scope}}
+  \end{scope}
+
+  %% header: eight-ray star, then the running-head rule
+  \begin{scope}[shift={(6.3,27.45)}]\bigsparkle{0.42}\end{scope}
+  \draw[ink!80!black,line width=0.4pt] (7.3,27.2) -- (18.8,27.2);
+  \fill[ink!80!black] (18.8,27.2) circle (0.035);
+
+  %% footer: mirrored ferns around a sparkle, sprays at the ends
+  \begin{scope}[shift={(13.0,1.45)}]
+    \begin{scope}[shift={(0.5,0)}]\fern{2.4}\end{scope}
+    \begin{scope}[shift={(-0.5,0)},xscale=-1]\fern{2.4}\end{scope}
+    \begin{scope}[shift={(3.3,0.9)}]\spray{25}{0.5}{2}\end{scope}
+    \begin{scope}[shift={(-3.3,0.9)}]\spray{155}{0.5}{2}\end{scope}
+    \sparkle{0.3}{gold}
+    \draw[ink!80!black,line width=0.3pt] \sparklepath{0.3};
+  \end{scope}
+\end{tikzpicture}}
+
+%% ---------------------------------------------------------- 4. page plumbing
+\AddToShipoutPictureBG{\AtPageLowerLeft{\margingarden}}
+
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[R]{\small\textsc{3\quad Procedural ornament}}
+\fancyfoot[R]{\small\thepage}
+\renewcommand\headrulewidth{0pt}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}[section]
+\theoremstyle{definition}
+\newtheorem{definition}[proposition]{Definition}
+\newtheorem{construction}[proposition]{Construction}
+\newtheorem{remark}[proposition]{Remark}
+\newtheorem{exercise}[proposition]{Exercise}
+
+%% ------------------------------------------------------------------ 5. text
+\begin{document}
+\setcounter{section}{3}\setcounter{subsection}{1}
+\subsection{The garden in the margin}
+
+Everything in the left margin of this page is drawn by \TeX\ at shipout time from a few
+hundred lines of TikZ. There are no image files, no imported paths and no external
+programs; every petal is a parametric curve evaluated while the page is being written.
+This section records how it is done, so that the margin documents itself.
+
+\begin{definition}
+A \emph{primitive} is a closed outline $\gamma\colon[0,1]\to\mathbb{R}^2$ authored by hand
+together with a small set of free parameters $(p_1,\dots,p_k)$. An \emph{instance} of the
+primitive samples the parameters from fixed intervals and draws $\gamma$ in a local frame
+chosen by the caller. The composition is \emph{authored}; only the parameters are
+\emph{sampled}. This is what ``procedural'' means here: no flower is grown from a grammar,
+but no two petals share a shape.
+\end{definition}
+
+\begin{construction}[Petal]
+A petal of length $1$ pointing along $+y$ is the egg curve
+\begin{align*}
+  x(\theta)&=w\cos\theta\,(1+0.35\sin\theta)\,\bigl(1+\rho(\theta)\bigr),\\
+  y(\theta)&=\tfrac12+\tfrac12\sin\theta\,\bigl(1+\rho(\theta)\bigr),
+  \qquad \theta\in[-90^\circ,270^\circ),
+\end{align*}
+with half-width $w\in[0.46,0.62]$ and a \emph{ruffle}
+\begin{align*}
+  \rho(\theta)&=a\,\frac{1+\sin\theta}{2}\,\bigl(\sin(5\theta+\varphi_1)
+  +\tfrac12\sin(11\theta+\varphi_2)+\tfrac14\sin(23\theta+\varphi_3)\bigr),\\
+  a&\in[0.028,0.046].
+\end{align*}
+The factor $(1+\sin\theta)/2$ vanishes at the base and is largest at the tip, so the petal
+attaches cleanly and frays where petals fray. The phases $\varphi_k$ are drawn once per
+petal; after that $\rho$ is deterministic, which matters because the same outline is
+needed three times: once as a gradient fill, once as a clipping path and once as a
+hairline stroke. The fill is an axis gradient from \texttt{ink!22} at the base to
+\texttt{ink!95!black} at the tip. Inside the clip, nine dark and six pale lens-shaped
+streaks radiate from the base at random angles, seven hairline veins run to the edge, and
+the outline is stroked again $1.3\,$pt wide so that only its inner half shows, giving the
+dark rim. The brushed texture of the petal is nothing more than those fifteen translucent
+lenses.
+\end{construction}
+
+\begin{construction}[Flower]
+Five petals are placed at $72^\circ$ intervals with $\pm7^\circ$ of jitter and lengths in
+$[0.83,1.03]$; the whole is rotated by a random angle. A white disc with a fuzzy-edged
+\emph{fading} is laid over the centre, which is what pulls the petal bases toward white
+without any seam. Sixteen stamens of random length end in gold dots; seven more gold
+dots sit at the heart.
+\end{construction}
+
+\begin{construction}[Leaves]
+A leaf of length $L$ along $+x$ has upper and lower edges
+\begin{align*}
+  x(t)&=L\,\frac{1-\cos t}{2},\\
+  y_\pm(t)&=\pm\,\lambda L\sin t\,\bigl(1+s\,(1-\lvert\sin(n t+\psi)\rvert)\bigr)
+           +c\,L\Bigl(\tfrac{1-\cos t}{2}\Bigr)^{2},
+\end{align*}
+for $t\in[0^\circ,180^\circ]$. The width ratio $\lambda$, serration depth $s$, tooth count
+$n$ and curl $c$ distinguish the species: $(\lambda,s,n)=(0.26,0.10,6)$ gives a serrated
+leaflet, $(0.08,0,1)$ with $c\in[-0.35,0.35]$ a grass blade. The two edges are separate
+smooth plots joined at the tip, so the tip is pointed. A \emph{dissected} leaf is a rib
+carrying three pairs of serrated leaflets of decreasing size at $\pm52^\circ$ and a terminal
+leaflet; a \emph{fern} is a rib with leaflets placed by path markings and scaled by their
+sequence number so that they taper.
+\end{construction}
+
+\begin{construction}[Sprays and umbels]
+A \emph{spray} is a ternary recursion of depth $d$: each segment forks into three
+segments at $-40^\circ,0^\circ,+40^\circ$ ($\pm14^\circ$) of $0.6$ its length ($\pm12\%$),
+and at depth $0$ draws a five-petal floret two millimetres across and a couple of stray
+dots. An \emph{arch spray} is one long bent stalk with depth-2 sprays hung alternately
+left and right along it. An \emph{umbel} fans eleven rays upward, each ending in a
+secondary umbel of six short rays with a dot at every tip; four short bracts curl up from
+the base. Tendrils are logarithmic spirals $r=0.06\,e^{0.0036\,\theta}$.
+\end{construction}
+
+\subsubsection{Composition}
+
+Two stalks run the height of the page: a thick vine and a thinner companion that crosses
+it four times. Each is a smooth plot through eleven control points whose $x$ coordinates
+carry $\pm3\,$mm of jitter. Leaves are not placed by hand; they are hung along the stalks
+by \texttt{decorations.markings}, which executes arbitrary drawing code at fractions of
+the arc length in a frame aligned with the tangent, so every leaf follows the direction of
+its stem. The same mechanism drops named coordinates at six fractions of the vine, and the
+larger elements --- flowers, bells, dissected leaves, the arch sprays --- are attached to
+short side branches grown from those anchors. Elements are drawn in depth order: sprays
+and ferns first, foliage, then bells and buds, then flowers, then the scattered ornaments.
+Everything is clipped to the margin column.
+
+\begin{remark}[Procedural is not random]
+The seed of the generator is set to a function of the page number before the garden is
+drawn. Page $n$ therefore receives the same garden on every compilation, and a different
+one from page $n+1$. The variation the reader notices between pages is real; the
+reproducibility is what makes the document stable enough to typeset.
+\end{remark}
+
+\begin{proposition}
+Let $P$ be the number of primitive instances on a page and $S$ the mean number of samples
+per outline. The cost of a page is $\Theta(PS)$ evaluations of \texttt{pgfmath}, and in
+practice on the order of a minute per page for $P\approx 400$ and $S\approx 50$ under
+\texttt{pdflatex}.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Each outline is evaluated once for its fill, and its clip and stroke reuse the saved soft
+path (\texttt{save path}/\texttt{use path}), so the per-primitive cost is the plot itself;
+the dozen or so textural strokes inside the clip are constant work. The constant is
+dominated by \texttt{pgfmath}, which computes in \TeX\ dimensions: integers and
+intermediate results must stay below $16\,384$, which is also why the page seed is
+$97\,n+1030$ and not something larger.
+\end{proof}
+
+\begin{exercise}
+The composition above is authored. Replace it by a growth process in the spirit of Wong,
+Zongker and Salesin (\emph{Computer-generated floral ornament}, SIGGRAPH 1998): starting
+from one seed on the vine, repeatedly choose a primitive, find the largest free disc in
+the margin region that touches an existing element, and place the primitive there if it
+fits, until no disc larger than a threshold remains. The ornament then adapts to any text
+block, and a page with a wide display equation grows a wider garden. Pure
+\texttt{pgfmath} is a poor host for the bookkeeping; \texttt{luatex} with the layout
+computed in Lua and the drawing left to the primitives above is the natural
+implementation.
+\end{exercise}
+
+\subsubsection{Building and sharing}
+
+The whole document is one file. It compiles with \texttt{pdflatex} in about half a
+minute per page, and with \texttt{lualatex} or \texttt{xelatex} unchanged. To share it,
+the three routes that work are, in increasing order of effort: paste the file into a blank
+Overleaf project and share the link; put it in a Git repository with a continuous
+integration job that compiles the PDF on every push and attaches it to tagged releases;
+or move the primitives of Section~3.2 into a package file so that any document can
+\texttt{\textbackslash usepackage} the garden and choose its own seed, column and hue.
+
+\begin{remark}
+Two mistakes cost an afternoon each and are worth recording. A \texttt{\textbackslash
+foreach} variable must not be an existing control sequence; \texttt{\textbackslash fi}
+in particular is a \TeX\ primitive and silently destroys the conditional that contains it.
+And a coordinate whose component contains parentheses, such as $(\sin\alpha,\cos\alpha)$,
+must have each component wrapped in braces, because TikZ reads a coordinate up to the
+first closing parenthesis it meets.
+\end{remark}
+
+\end{document}

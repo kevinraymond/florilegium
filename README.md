@@ -3,11 +3,14 @@
 ## Origin
 
 The [Reddit post](https://www.reddit.com/r/LaTeX/comments/1xixznw/how_do_you_make_these_flowers_in_latex/)
-asked how to make flowers like these in LaTeX. I don't know how the original was made, and
-this project doesn't try to reproduce it. It is one possible way, and the way I did it:
-hand-authored primitives with randomized parameters, painted in Lua, placed by a procedural
-layout whose "fill the unused space" part borrows a 1998 idea from the ornament literature.
-It gets a similar look.
+asked how to make flowers like these in LaTeX. I don't know how the original was made. This
+project is one possible way, and the way I did it uses hand-authored primitives with
+randomized parameters, painted in Lua and placed by a procedural layout whose "fill the
+unused space" part borrows a 1998 idea from the ornament literature.
+It gets a similar look, but I explicitly tried to not replicate the original.
+
+This project was made with the assistance of AI (Claude), and I'm sharing the
+[process I used](PROCESS.md) to bring it to life.
 
 ## What it is
 
