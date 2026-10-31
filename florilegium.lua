@@ -272,6 +272,10 @@ local function captions(g, list, shown)
   tex.sprint(table.concat(out))
 end
 
+-- the captions of the last page drawn, in layout cm, for svg.lua, which has no TeX to set them,
+-- and what grew on it (grow.lua's counts)
+M.last_captions, M.last_stats = nil, nil
+
 local function grown_frame(g)
   local key = string.format("%d %d %.3f %s %d %s %s %s", g.seed, g.spill, g.spilly, tostring(g.age), #g.marks, tostring(g.theme), tostring(g.mirror), tostring(g.density))
   if not recorded[key] then
@@ -320,6 +324,7 @@ function M.grown(seed, spill, spilly, box)
   if frame then grown_frame(g)
   else
     local r = require("grow").page(g)
+    M.last_captions, M.last_stats = r and r.captions, r and r.stats
     captions(g, r and r.captions)
   end
   M.head(g)
@@ -334,6 +339,7 @@ function M.authored(seed, box)
   g.seed, g.visitors, g.theme = seed, M.visitors, M.theme
   local old = ink.set_pale(pale())
   local r = require("authored").page(g)
+  M.last_captions, M.last_stats = r and r.captions, r and r.stats
   captions(g, r and r.captions)
   M.head(g)
   ink.set_pale(old)

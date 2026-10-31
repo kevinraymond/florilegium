@@ -100,7 +100,17 @@ preview: florilegium.pdf florilegium-grow.pdf showcase.pdf spread.pdf specimen-g
 	  s = Image.new('RGB', (len(ims) * (w + 8) + 8, h + 16), (235, 235, 240)); \
 	  [s.paste(im, (8 + i * (w + 8), 8)) for i, im in enumerate(ims)]; s.save('gallery/preview-showcase.png')"
 
+# the same page as SVG, without TeX (svg.lua; any Lua 5.3/5.4):  make svg [SEED=7]
+#   -> build/svg-7.svg, the drawing on page 1 of florilegium-grow.tex with that seed
+svg: svg.lua grow.lua authored.lua $(LUA)
+	mkdir -p build
+	$(RUN) texlua svg.lua --seed $(SEED) -o build/svg-$(SEED).svg
+
+# the playground in web/, served from the repository: http://localhost:8000/web/
+playground:
+	python3 -m http.server 8000
+
 clean:
 	rm -rf build *.aux *.log *.out *.synctex.gz
 
-.PHONY: all gallery animation preview postscript clean
+.PHONY: all gallery animation preview postscript svg playground clean

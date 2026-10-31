@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Florilegium proof</title>
+<meta name="description" content="Grow a Delft-blue floral page margin with the same Lua that draws it in LuaLaTeX, and take it home as SVG, LaTeX or Typst.">
+<link rel="icon" href="hedera.svg">
+<style>
+  /* Two inks, as on the page itself: cobalt for what is printed, copper for what you
+     can take hold of. Blue and orange stay apart for the common color blindnesses,
+     and no choice is told by color alone: a pointing hand and an underline mark it. */
+  @font-face { font-family: "Fell"; src: url(fonts/fell.woff2) format("woff2"); font-display: swap; }
+  @font-face { font-family: "Fell"; src: url(fonts/fell-italic.woff2) format("woff2"); font-style: italic; font-display: swap; }
+  @font-face { font-family: "Fell SC"; src: url(fonts/fell-sc.woff2) format("woff2"); font-display: swap; }
+  @font-face { font-family: "Florilegium Roman"; src: url(fonts/lmroman.woff2) format("woff2"); }
+  @font-face { font-family: "Florilegium Roman"; src: url(fonts/lmroman-italic.woff2) format("woff2"); font-style: italic; }
+  @font-face { font-family: "Florilegium Roman"; src: url(fonts/lmroman-bold.woff2) format("woff2"); font-weight: bold; }
+  @font-face { font-family: "Florilegium Mono"; src: url(fonts/lmmono.woff2) format("woff2"); }
+  :root {
+    --table: #e7e1d4; --table-ink: #2b3550; --table-faint: #6f7484;
+    --paper: #fffdf8; --paper-2: #f6f1e6; --rule: #d9cfbd;
+    --ink-900: #0f1e4a; --ink-700: #1d3f8f;
+    --copper-700: #8f4a1c; --copper-500: #b4662f; --copper-200: #edd5c0; --mark: var(--copper-700);
+    --fell: "Fell", "Iowan Old Style", Palatino, Georgia, serif;
+    --fell-sc: "Fell SC", "Fell", Georgia, serif;
+    --roman: "Florilegium Roman", "Latin Modern Roman", Georgia, serif;
+    --mono: "Florilegium Mono", ui-monospace, Menlo, monospace;
+    --hand: "DejaVu Sans", "Segoe UI Symbol", "Apple Symbols", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --table: #0e1a3a; --table-ink: #e6ebf7; --table-faint: #9aa8cc; --mark: #e0a06c; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--table); color: var(--table-ink); font-family: var(--fell); }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--copper-500); outline-offset: 3px; border-radius: 2px; }
+
+  /* the running head: the book's title and the way out */
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding: 18px 40px 0; height: 52px; }
+  .head h1 { margin: 0; font-family: var(--fell-sc); font-weight: normal; font-size: 22px; letter-spacing: .06em; }
+  .head h1 em { font-family: var(--fell); font-style: italic; letter-spacing: 0; font-size: 18px; color: var(--table-faint); margin-left: 10px; }
+  .head nav { font-family: var(--fell-sc); font-size: 16px; letter-spacing: .04em; }
+  .head nav a { color: var(--table-ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  .head nav a:hover { border-bottom-color: var(--copper-500); }
+  .head nav span { color: var(--table-faint); margin: 0 8px; }
+
+  .table { display: grid; grid-template-columns: auto minmax(330px, 420px); gap: 56px; justify-content: center; align-items: start; padding: 48px 40px 0; }
+
+  /* the proof: a sheet with its crop marks, its margin measured above it */
+  .sheet { position: relative; height: max(400px, calc(100dvh - 316px)); aspect-ratio: var(--ar, 0.70707); }
+  .proof { position: absolute; inset: 0; margin: 0; background: var(--paper); container-type: inline-size;
+    box-shadow: 0 1px 1px rgba(40, 30, 10, .12), 0 10px 30px rgba(40, 30, 10, .16); }
+  .proof .garden { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity .3s; }
+  .proof.growing .garden { opacity: .45; }
+  .crop { position: absolute; width: 18px; height: 18px; pointer-events: none; }
+  .crop::before, .crop::after { content: ""; position: absolute; background: var(--table-ink); opacity: .55; }
+  .crop::before { width: 14px; height: 1px; }
+  .crop::after { width: 1px; height: 14px; }
+  .crop.tl { left: -22px; top: -22px; } .crop.tl::before { left: 0; bottom: 3px; } .crop.tl::after { right: 3px; top: 0; }
+  .crop.tr { right: -22px; top: -22px; } .crop.tr::before { right: 0; bottom: 3px; } .crop.tr::after { left: 3px; top: 0; }
+  .crop.bl { left: -22px; bottom: -22px; } .crop.bl::before { left: 0; top: 3px; } .crop.bl::after { right: 3px; bottom: 0; }
+  .crop.br { right: -22px; bottom: -22px; } .crop.br::before { right: 0; top: 3px; } .crop.br::after { left: 3px; bottom: 0; }
+
+  /* the margin, measured; the knob at the text's edge is the control */
+  .measure { position: absolute; top: -38px; height: 20px; display: flex; align-items: center; color: var(--mark); }
+  .measure::before, .measure::after { content: ""; flex: 1; height: 1px; background: currentColor; opacity: .7; }
+  .measure span { font-style: italic; font-size: 15px; padding: 0 8px; white-space: nowrap; }
+  .measure i { position: absolute; top: 4px; width: 1px; height: 12px; background: currentColor; opacity: .7; }
+  .measure .knob { position: absolute; top: 1px; width: 14px; height: 18px; border-radius: 7px; background: var(--paper);
+    border: 1.5px solid var(--copper-500); cursor: col-resize; touch-action: none; }
+  .measure .knob::after { content: ""; position: absolute; left: 5px; top: 18px; height: 22px; border-left: 1px dashed var(--copper-500); }
+  .measure.left i { left: 0; } .measure.left .knob { right: -7px; }
+  .measure.right i { right: 0; } .measure.right .knob { left: -7px; }
+
+  /* the text, set as LaTeX sets it: Latin Modern, 11 pt on the page */
+  .text { position: absolute; overflow: hidden; font-family: var(--roman); font-size: var(--fs, 1.848cqw); line-height: 1.236; color: #111;
+    text-align: justify; hyphens: auto; }
+  .text h2 { font-size: 1.309em; font-weight: bold; margin: 0 0 .7em; }
+  .text h2 span { margin-right: 1em; }
+  .text p { margin: 0; text-indent: 1.5em; }
+  .text h2 + p { text-indent: 0; }
+  .text p[hidden] { display: none; }
+  .folio { position: absolute; text-align: center; font-family: var(--roman); font-size: var(--fs, 1.848cqw); color: #111; }
+
+  /* the foot of the text: drag it up to make this the last page */
+  .foot { position: absolute; height: 14px; margin-top: -7px; cursor: row-resize; touch-action: none; }
+  .foot::before { content: ""; position: absolute; left: 0; right: 0; top: 7px; border-top: 1px dashed var(--copper-500); opacity: .8; }
+  .foot span { position: absolute; right: 0; top: 13px; font-family: var(--fell); font-style: italic; font-size: 13.5px; color: var(--copper-700);
+    background: var(--paper); padding: 1px 7px 2px; border: 1px solid var(--copper-200); border-radius: 0 0 4px 4px; white-space: nowrap; }
+
+  /* under the proof: how it reads to others, and the seeds on either side */
+  .below { margin-top: 30px; display: grid; gap: 10px; }
+  .seenby { font-size: 16px; color: var(--table-faint); }
+  .seenby > em { margin-right: 6px; }
+  .opt { font-family: var(--fell-sc); letter-spacing: .03em; color: var(--table-ink); padding: 2px 1px; border-bottom: 1px solid transparent; }
+  .opt:hover { border-bottom-color: var(--copper-500); }
+  .opt[aria-pressed=true] { border-bottom: 1.5px solid var(--copper-500); }
+  .opt[aria-pressed=true]::before { content: "☞ "; color: var(--mark); font-family: var(--hand); font-size: .9em; }
+  .sep { margin: 0 7px; opacity: .6; }
+  .verdict { display: block; font-style: italic; margin-top: 3px; min-height: 1.3em; color: var(--table-ink); }
+  .verdict button { font-style: italic; color: var(--mark); border-bottom: 1px dotted currentColor; margin-left: 4px; }
+  .seeds { display: flex; gap: 10px; align-items: flex-end; overflow-x: auto; padding: 4px 4px 2px; height: 96px; }
+  .seeds button { display: grid; justify-items: center; gap: 2px; color: var(--table-faint); font-size: 14px; flex: none; }
+  .seeds .thumb { width: 44px; height: 62px; background: var(--paper); box-shadow: 0 1px 2px rgba(40, 30, 10, .25); transition: transform .15s; display: block; object-fit: contain; }
+  .seeds button:hover .thumb { transform: translateY(-3px); }
+  .seeds button[aria-current=true] { color: var(--table-ink); }
+  .seeds button[aria-current=true] .thumb { width: 52px; height: 73px; outline: 1.5px solid var(--copper-500); outline-offset: 3px; }
+
+  /* the colophon: a slip of the same paper, its copper words the controls */
+  .slip { background: var(--paper); color: var(--ink-900); padding: 26px 32px 24px; box-shadow: 0 1px 1px rgba(40, 30, 10, .12), 0 8px 24px rgba(40, 30, 10, .14); }
+  .slip .orn { display: block; width: 56px; margin: 0 auto 2px; }
+  .slip h2 { font-family: var(--fell-sc); font-weight: normal; font-size: 20px; letter-spacing: .08em; text-align: center; margin: 0 0 14px; color: var(--ink-700); }
+  .colophon { font-size: 19px; line-height: 1.6; margin: 0; }
+  .term { color: var(--copper-700); border-bottom: 1.5px dotted var(--copper-500); padding: 0 1px; line-height: 1.2; }
+  .term:hover, .term[aria-expanded=true] { border-bottom-style: solid; }
+  .stepper { color: var(--copper-700); font-size: 17px; padding: 0 3px; }
+  .nowrap { white-space: nowrap; }
+  .grown { font-style: italic; font-size: 14.5px; color: #6a6f80; margin: 10px 0 0; min-height: 1.4em; }
+  .grown.error { color: var(--copper-700); }
+  .grown.error::before { content: "☞ "; font-family: var(--hand); font-style: normal; }
+  .rule { display: flex; align-items: center; gap: 12px; margin: 16px 0 10px; }
+  .rule::before, .rule::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+  .rule img { width: 9px; }
+  .take { font-style: italic; font-size: 17px; margin: 0 0 6px; color: var(--ink-700); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; font-size: 16px; margin-bottom: 8px; }
+  .tabs .opt { color: var(--ink-700); }
+  .tabs .opt[aria-pressed=true]::before { color: var(--copper-700); }
+  .tabs .sep { color: var(--rule); margin: 0 3px; }
+  .insert { background: var(--paper-2); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 10px 14px 9px; position: relative; }
+  .insert pre { margin: 0; font: 12.4px/1.45 var(--mono); white-space: pre-wrap; word-break: break-word; color: var(--ink-900); max-height: 230px; overflow: auto; }
+  /* the copy button floats, so the snippet's lines wrap around it instead of running under it */
+  .insert .copy { float: right; margin: -2px -4px 4px 10px; font-family: var(--fell-sc); font-size: 14px; color: var(--copper-700); border-bottom: 1px dotted var(--copper-500); padding: 0 2px; }
+  .note { font-style: italic; font-size: 14.5px; color: #5d6274; margin: 8px 0 0; line-height: 1.45; }
+  .note .term { font-style: italic; }
+  .download { display: inline-block; margin-top: 10px; font-family: var(--fell-sc); font-size: 16px; letter-spacing: .03em; color: var(--paper); background: var(--copper-700);
+    padding: 5px 14px 6px; border-radius: 2px; }
+  .download:hover { background: #7a3e17; }
+  .download[disabled] { opacity: .5; cursor: default; }
+
+  /* a chooser opens under its word, as a smaller slip */
+  .chooser { position: absolute; z-index: 5; min-width: 230px; max-width: 340px; background: var(--paper); border: 1px solid var(--rule);
+    box-shadow: 0 10px 28px rgba(40, 30, 10, .2); padding: 8px 0; font-size: 17px; color: var(--ink-900); }
+  .chooser[hidden] { display: none; }
+  .chooser [role=option] { display: grid; grid-template-columns: 22px 1fr; align-items: center; width: 100%; text-align: left; padding: 4px 16px 4px 10px; }
+  .chooser [role=option]:hover, .chooser [role=option]:focus-visible { background: var(--paper-2); outline: none; }
+  .chooser .mark { color: var(--copper-700); font-family: var(--hand); font-size: 14px; }
+  .chooser .ramp { display: inline-block; width: 60px; height: 9px; border-radius: 5px; margin-right: 10px; vertical-align: 1px; }
+  .chooser small { grid-column: 2; font-style: italic; font-size: 14px; color: var(--copper-700); line-height: 1.3; }
+  .chooser .hint { font-style: italic; font-size: 14px; color: #6a6f80; padding: 6px 16px 2px 32px; margin: 0; }
+  .chooser form { display: flex; gap: 8px; padding: 6px 14px 8px 32px; }
+  .chooser input[type=number] { width: 110px; font: 17px var(--fell); color: var(--ink-900); background: var(--paper-2); border: 1px solid var(--rule); padding: 3px 6px; }
+
+  /* the measurements behind "seen by" */
+  .measurements { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: rgba(14, 26, 58, .35); padding: 16px; }
+  .measurements[hidden] { display: none; }
+  .measurements .card { background: var(--paper); color: var(--ink-900); max-width: 760px; max-height: calc(100dvh - 32px); overflow: auto; padding: 24px 28px; box-shadow: 0 16px 40px rgba(14, 26, 58, .35); }
+  .measurements h3 { font-family: var(--fell-sc); font-weight: normal; font-size: 19px; letter-spacing: .06em; margin: 0 0 8px; color: var(--ink-700); }
+  .measurements p { font-size: 15.5px; line-height: 1.5; margin: 0 0 12px; }
+  .measurements table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .measurements th, .measurements td { padding: 4px 8px; border-bottom: 1px solid var(--rule); text-align: right; white-space: nowrap; }
+  .measurements th:nth-child(-n+2), .measurements td:nth-child(-n+2) { text-align: left; }
+  .measurements th { font-family: var(--fell-sc); font-weight: normal; letter-spacing: .03em; }
+  .measurements tr.current td { background: var(--paper-2); }
+  .measurements td.weak { color: var(--copper-700); }
+  .measurements td.weak::after { content: " ☞"; font-family: var(--hand); font-size: 12px; }
+  .measurements .close { float: right; font-family: var(--fell-sc); color: var(--copper-700); border-bottom: 1px dotted currentColor; }
+
+  @media (max-width: 980px) {
+    .table { grid-template-columns: 1fr; justify-items: center; padding: 48px 26px 0; gap: 40px; }
+    .sheet { height: auto; width: min(100%, 560px); }
+    .below, .slip { width: min(100%, 560px); }
+    .head { padding: 14px 20px 0; flex-wrap: wrap; height: auto; }
+  }
+  footer { height: 16px; }
+  /* a snippet that holds more than it shows fades at its foot, until it is scrolled there */
+  .insert pre.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), transparent); }
+  /* a short window: the slip sets closer, and the snippet scrolls inside itself, not the page */
+  @media (min-width: 981px) {
+    .insert pre { max-height: max(84px, calc(100dvh - 650px)); }
+  }
+  @media (min-width: 981px) and (max-height: 960px) {
+    .slip { padding: 18px 28px 18px; }
+    .slip .orn { width: 44px; }
+    .slip h2 { margin-bottom: 8px; font-size: 18px; }
+    .colophon { font-size: 17.5px; line-height: 1.5; }
+    .grown { margin-top: 6px; }
+    .rule { margin: 10px 0 6px; }
+    .take { font-size: 16px; margin-bottom: 4px; }
+    .tabs { margin-bottom: 6px; }
+    .note { margin-top: 6px; }
+    .download { margin-top: 8px; }
+    footer { height: 6px; }
+  }
+</style>
+</head>
+<body>
+<header class="head">
+  <h1>Florilegium <em>a margin that grows</em></h1>
+  <nav><a href="https://github.com/kevinraymond/florilegium#how-it-works">How it grows</a><span>·</span><a href="https://github.com/kevinraymond/florilegium/releases/latest">The PDFs</a><span>·</span><a href="https://github.com/kevinraymond/florilegium">Source</a></nav>
+</header>
+
+<main class="table">
+  <section aria-label="The proof">
+    <div class="sheet" id="sheet">
+      <div class="measure" id="measure"><i></i><span id="mm"></span>
+        <button class="knob" id="knob" role="slider" aria-label="Margin width" aria-valuemin="30" aria-valuemax="100" aria-valuenow="68"></button></div>
+      <figure class="proof growing" id="proof">
+        <div class="text" id="text"></div>
+        <img class="garden" id="garden" alt="">
+        <div class="folio" id="folio">1</div>
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+      </figure>
+      <button class="foot" id="foot" role="slider" aria-label="Where the text ends"><span id="foot-label"></span></button>
+    </div>
+
+    <div class="below">
+      <div class="seenby" role="group" aria-label="Seen by">
+        <em>Seen by</em><span id="seenby"></span>
+        <span class="verdict" id="verdict"></span>
+      </div>
+      <nav class="seeds" id="seeds" aria-label="Neighboring seeds"></nav>
+    </div>
+  </section>
+
+  <aside class="slip" aria-label="Colophon">
+    <img class="orn" src="hedera.svg" alt="">
+    <h2>Colophon</h2>
+    <p class="colophon" id="colophon"></p>
+    <p class="grown" id="grown" role="status">The garden is growing…</p>
+    <div class="rule"><img src="sparkle.svg" alt=""></div>
+    <p class="take">To set it in your own pages</p>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="insert"><button class="copy" id="copy">copy</button><pre id="snippet"></pre></div>
+    <p class="note" id="note"></p>
+    <button class="download" id="download" disabled>Download the SVG</button>
+  </aside>
+</main>
+<footer></footer>
+
+<div class="chooser" id="chooser" role="listbox" hidden></div>
+
+<div class="measurements" id="measurements" hidden role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="card">
+    <button class="close" id="mclose">close</button>
+    <h3 id="mtitle">How the inks read</h3>
+    <p>Each ink's middle tone against the accent, as most readers see it and as Machado, Oliveira and
+      Fernandes's model (2009) shows it for the three color blindnesses at full strength, measured as the
+      distance between the two colors in Oklab. Under 0.10 they are hard to tell apart in a fine line
+      (marked ☞); over 0.15 they are clear. Those two thresholds are this page's rule of thumb, not a standard.</p>
+    <table id="mtable"></table>
+  </div>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Machado, Oliveira & Fernandes (2009), severity 1, in linear RGB -->
+  <filter id="protan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
+  <filter id="deutan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
+  <filter id="tritan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/></filter>
+</svg>
+<input type="color" id="picker" hidden>
+<script type="module" src="app.js"></script>
+</body>
+</html>

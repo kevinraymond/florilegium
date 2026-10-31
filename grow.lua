@@ -1020,6 +1020,8 @@ function M.page(g)
     texio.write_nl(string.format("florilegium: grew %d cells, %d motifs, %d stem points, %.0f KB; visitors: %s",
       #gx, n, #spts, bytes / 1024, #seen > 0 and table.concat(seen, ", ") or "none"))
   end
+  -- what grew, for a page that describes its own garden (svg.lua and the playground)
+  return { stats = { motifs = n, counts = counts, stems = #spts, cells = #gx } }
 end
 
 return M
