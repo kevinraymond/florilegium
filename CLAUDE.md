@@ -13,7 +13,9 @@ the whole composition (`theme-math.lua`: figures, TeX symbols and equations casc
 the margin and along the bottom, from `figures.lua`); `density` (down to a single vine at
 0.05) and `intensity` turn any margin down; `\florilegiumornament` sets one primitive in the text (issue #4). The garden grows in
 the wider side margin, mirrored when that is the right one (two-sided documents);
-`spread.tex` shows that and a theme.
+`spread.tex` shows that and a theme. `svg.lua` draws the same page without TeX, as SVG (byte for
+byte the same drawing as LuaLaTeX's), and `web/` runs it in the browser: the playground,
+published to GitHub Pages.
 
 ## Files
 
@@ -29,6 +31,9 @@ the wider side margin, mirrored when that is the right one (two-sided documents)
 | `theme-math.lua` | the math theme, a composition of its own (`page(g, grow)`): regions = column, a footer band to 72% of the text width, spill; 1. a large corner figure, 2. one or two families down the column, each figure larger than the last, copper arrows, 3. equations (TeX, `EQUATIONS`, base LaTeX only) along the footer and in rows under the text, 4. largest hole first: figure / TeX glyph (`GLYPHS`, scaled, tilted, colored) / dot, proxies at k 0.5–0.62 so things overlap; a size gradient toward the corner. `density` scales the count. |
 | `authored.lua` | authored composition: the hand-placed "score" (STEMS, LEAVES, BRANCHES, GHOSTS, VISITORS, SNAIL, ACCENTS, FOOT) for A4 with a 68 mm left margin. |
 | `initial.lua` | decorated initials: glyph outline via `fonts.handlers.otf.readers.loadshapes`, even-odd inside test, clearance grid, the vine over/under the letter, leaflets, flowers in the gaps, tile frame. |
+| `svg.lua` | a page as SVG without TeX (any Lua 5.3/5.4): `M.page(o)` stubs `tex` (`dimen`, `count`, `hoffset`), `node`, `luatexbase`, `texio` around `florilegium.grown`/`authored` and restores them, so `florilegium.geometry()` itself lays the page out; `M.sp` scans a length as TeX does, `html` converts a color as xcolor does (`\rdivide`, then `print_scaled`); `M.translate` turns ink's PDF operators into SVG (clip groups, opacity, multiply). Returns `svg, g, { streams, captions, stats }` (captions: the math theme's TeX, placed and mirrored as `florilegium.lua`'s `captions()` places it, from `florilegium.last_captions`; stats: what grew, from `florilegium.last_stats`, which `grow.page` returns as `{ stats = { motifs, counts, stems, cells } }`). CLI: `texlua svg.lua --help`. |
+| `web/`, `.github/workflows/pages.yml` | the playground, "a proof and its colophon": `index.html` (the proof sheet with crop marks and the measured margin, the colophon slip, styles), `app.js` (state in the URL hash; the colophon sentence built from the state, each copper word a chooser, and the garden's alt text; the knob on the measure and the foot of the text as drag/arrow-key controls; page text written from `stats`; "seen by" filters and the measurements table, Machado 2009 + Oklab, `WEAK` 0.10; snippets; a second worker for the neighbor thumbnails), `worker.js` (wasmoon 1.16.0 from jsDelivr, mounts `MODULES`, calls `svg.page`, `setTop(0)` after each call), `captions.js` (MathJax 3.2.2 `tex2svg` with `fontCache: 'none'`, set at TikZ's anchor, size in pt, rotation, color, opacity, then spliced into the SVG), `fonts/` (WOFF2 subsets, licenses, README), `hedera.svg` and `sparkle.svg` (drawn by `tools/ornament.lua`). `pages.yml` checks `svg.lua` under `lua5.4`, then publishes `web/` + `*.lua` on pushes to main that touch them. |
+| `tools/playcheck/` | `check.mjs` (puppeteer-core): operates every control of the playground and checks the garden, geometry, colophon, URL and snippets (44 checks); writes one all-settings-changed page and its CLI/LaTeX snippets for a `cmp` / PDF check. |
 | `florilegium.tex` / `florilegium-grow.tex` | demo documents (authored / grown). Body text = `text-methods.tex` (+ `text-growth.tex` for grown) + `text-sharing.tex`; it describes the code, so **update it when the method changes**. |
 | `showcase.tex` | "A year in the margin": `[grown,sections,aging]`, an initial, `\florilegiumbloom`; each section describes the feature it shows. Two passes. |
 | `spread.tex` | "Two sides, two gardens": `twoside`, wide outer margin, `[grown,sections]`; page 3 switches to `\florilegiumtheme{geometric}` after a `\newpage`. `make preview` puts pages 2–3 side by side in `gallery/spread.png`. Its text describes the mirror and the themes; keep page 2 full (the `\newpage`) and page 3 short enough to spill. |
@@ -54,6 +59,9 @@ tools/in-docker texlua tools/animcheck.lua 1 2 3       # last frame == page, byt
 tools/in-docker texlua tools/ident.lua build/ident-a    # 45 content streams, to diff -r before/after a change
 make preview                              # gallery/preview-*.png, spread.png, specimen-geometric.png, geometric.png, math.png
 make postscript [SEED=7]                  # the PostScript port via local gs -> build/postscript-7.pdf + gallery/preview-postscript.png
+make svg [SEED=7] RUN=tools/in-docker     # build/svg-7.svg: the drawing on page 1 of florilegium-grow.tex, without TeX
+make playground                           # web/ at http://localhost:8000/web/ (the Lua is fetched from ../)
+cd tools/playcheck && npm install && node check.mjs http://localhost:8000/web/ ../../build   # every control, 44 checks
 ```
 
 Fixed seed: `lualatex "\def\florilegiumseed{7}\input{florilegium-grow.tex}"`. Any
@@ -69,7 +77,7 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
 ## Conventions and traps
 
 - **US spelling everywhere** (color, center, gray, meter) — code, comments, docs.
-- **Credits and licenses.** Every file a user copies (`florilegium.sty`, the nine `.lua`,
+- **Credits and licenses.** Every file a user copies (`florilegium.sty`, the ten `.lua`,
   `postscript/florilegium.ps`) carries the copyright line; the `.sty` and the `.ps` (which
   travels alone) carry the full MIT text. A borrowed algorithm or published constant gets a
   credit where it is used and a line under README's Credits (Ottosson's Oklab, Ettinger's
@@ -151,6 +159,32 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   `3 Tr` / `0 Tr` instead. (ActualText on a path-only span is ignored by poppler.)
 - This container's TeX Live lacks luaotfload's font database for system fonts; the
   documents pin Computer Modern. Harmless to remove on a full install.
+- **SVG** (`svg.lua`) translates only what `ink.lua` writes (`m l c h f S W n q Q rg RG w d J j`,
+  `gs` with `/floaNN` `/flomNN`) and errors on anything else: a new operator in ink needs a case
+  there. Anything new that the page path of `florilegium.lua` reads from TeX (`tex.dimen`, `token`)
+  needs a stub in `M.page`. Byte identity with LuaLaTeX rests on the length scan and the xcolor
+  conversion; check it by building with `\pdfvariable compresslevel=0` and finding the streams
+  (`svg.page`'s third return) in the PDF. The math theme's text is TeX: the CLI leaves it out with
+  a warning, the playground sets it with MathJax (close to TeX's setting, not identical). Chromium
+  draws hairlines thinner than a pixel heavier than PDF renderers do (a Maurer rose's chords); the
+  SVG itself is right (Typst's svg2pdf, then poppler, matches the LuaLaTeX page).
+- **Playground**: `worker.js` mounts only the modules in `MODULES`, so a new theme or module the
+  page requires goes there too (`pages.yml` copies every `*.lua`). The browser runs Lua 5.4 and
+  LuaTeX 5.3: keep the Lua to both. Seeds have matched byte for byte across texlua, lua5.3,
+  lua5.4 and wasmoon (18 varied pages). Every control that differs from its default is in the
+  URL hash; the LaTeX and command-line snippets give the same garden (checked: the CLI output is
+  the download byte for byte, and the compiled LaTeX contains its garden and head rule). wasmoon
+  keeps whatever `doString` returns on the Lua stack: without `lua.global.setTop(0)` after each
+  call every page stays in memory and WebAssembly fails after ~35 pages ("attempt to index a nil
+  value", "memory access out of bounds"). Run `tools/playcheck` after touching `web/`.
+- **Playground design** (the user's direction, 2026-10-31): a printer's proof and its colophon, not
+  a sidebar of sliders. Cobalt is what is printed, copper what can be taken hold of; a choice is
+  never told by color alone (a manicule ☞ and an underline). The colophon is generated from the
+  state, so it cannot disagree with the page, and it offers only what the style uses: the math
+  page has no season and no visitors (they change nothing there), its density ends "pared down to
+  a few figures" and its head rule starts with a circle, not an ivy leaf; a seed that no visitor
+  came to says so. Each density is a whole phrase, so the sentence reads at every value. Fell for the table and slip, Latin Modern (renamed
+  Florilegium Roman/Mono, as GUST asks of modified fonts) for the page; fonts are self-hosted.
 - **PostScript port** (`postscript/florilegium.ps`, `make postscript [SEED=7]`, ~2.5 s):
   callbacks (spines, half-widths) see their caller's variables by dynamic scoping, so a
   helper that takes a procedure keeps its own names under `_` (`_p`, `_n`), and the growth

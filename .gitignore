@@ -10,3 +10,4 @@ scratch/
 *.png
 !gallery/*.png
 !process/**/*.png
+tools/playcheck/node_modules/

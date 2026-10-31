@@ -1,0 +1,41 @@
+name: pages
+on:
+  push:
+    branches: [main]
+    paths: ['web/**', '*.lua', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # the playground (web/) and the package's Lua beside it, published to GitHub Pages
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: the Lua still draws a page without TeX
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lua5.4 > /dev/null
+          lua5.4 svg.lua --seed 7 -o /dev/null
+          lua5.4 svg.lua --seed 3 --theme geometric --season autumn --textend 120mm -o /dev/null
+          lua5.4 svg.lua --page 2 --twoside --left 25mm --right 65mm --density 0.3 -o /dev/null
+      - name: assemble the site
+        run: |
+          mkdir _site
+          cp -r web/. _site/
+          cp ./*.lua LICENSE _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

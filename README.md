@@ -19,6 +19,10 @@ paths, no external assets: every petal, leaf and stem is a parametric curve comp
 while the page is being written, painted like a watercolor, and written straight into the
 PDF. Every page gets its own garden.
 
+[Try it in your browser](https://kevinraymond.github.io/florilegium/). The playground sets a page
+as a printer's proof, grows its margin with the same Lua, and hands it back as an SVG, a LaTeX
+preamble or a Typst page setup.
+
 ![six seeds](gallery/seeds.gif)
 
 *Six seeds of the grown composition. Same code, different seed — and the garden fills
@@ -214,6 +218,54 @@ page is laid out as if seen in a mirror, then drawn through a reflection: the la
 transform that every point already passes through. It is exactly the reflection of the
 garden the same seed would grow on the left.
 
+## SVG, Typst and the browser
+
+![the playground: a proof of the page on the left, its colophon on the right](gallery/playground.png)
+
+*The [playground](https://kevinraymond.github.io/florilegium/), seed 12 in autumn on a last
+page. The page is a proof, and its colophon, the note a book keeps about its paper, ink and
+printing, is the set of controls: every copper word in it can be changed.*
+
+The same Lua can draw a page without TeX. `svg.lua` runs the package's own code with a small
+stand-in for the few parts of TeX it touches (the page's lengths, the page number, and the node
+a drawing goes into), takes the PDF drawing commands that `ink.lua` writes as it always does,
+and rewrites them as SVG. Nothing in the drawing code changes, so the garden is the one
+LuaLaTeX would draw, not an imitation of it.
+
+```sh
+texlua svg.lua --seed 7 > margin.svg   # page 1 of a document with \def\florilegiumseed{7}
+lua svg.lua --seed 7 --season autumn --ink 5B2A1F --left 25mm --right 65mm > margin.svg
+texlua svg.lua --help                  # paper, margins, two-sided pages, the last page, themes...
+make svg SEED=7                        # -> build/svg-7.svg
+```
+
+Any Lua 5.3 or 5.4 runs it. Lengths are read the way TeX reads them and colors are converted
+the way xcolor converts them, so `--seed 7` with the default margins gives, byte for byte, the
+drawing on page 1 of `florilegium-grow.tex` built with seed 7. The SVG is a whole page with a
+transparent background, which makes it a page background anywhere. In Typst:
+
+```typst
+#set page(paper: "a4", margin: (left: 68mm, right: 22mm, top: 32mm, bottom: 30mm),
+  background: image("margin.svg", width: 100%, height: 100%))
+```
+
+The playground runs the same files in the browser with [wasmoon](https://github.com/ceifa/wasmoon),
+Lua 5.4 compiled to WebAssembly, in a background worker, and a page grows in about a second.
+Seed 7 there is seed 7 here. The proof is the control surface as much as the colophon is: the
+measure above it sets the margin, and dragging the foot of the text up makes a last page. The
+text on the proof describes the garden that just grew, from the counts the growth loop keeps.
+Under it, the page can be seen as readers with protanopia, deuteranopia or tritanopia see it,
+with the distance between the ink and the accent measured for each (Machado, Oliveira and
+Fernandes's model, distances in Oklab); a pairing that is hard to tell apart is flagged when you
+choose it. Next to the download are the LaTeX preamble, the Typst setup and the command line that
+make the same garden, and the address bar keeps every setting, so a garden can be shared as a link.
+
+To run it from a clone, serve the repository with `make playground` and open
+<http://localhost:8000/web/>. The math theme works too. Its figures come from the same Lua; its
+equations and symbols, which TeX sets in a PDF, are set in the playground by MathJax in the same
+Computer Modern, and the command line leaves them out. The fonts are served with the page (IM FELL
+DW Pica, and Latin Modern renamed as its license asks), so nothing is fetched from a font service.
+
 ## In PostScript
 
 ![the two pages of postscript/florilegium.ps, seed 7](gallery/preview-postscript.png)
@@ -268,6 +320,8 @@ make seed-7                 # one page from seed 7 -> build/seed-7.pdf
 make gallery                # gallery/seeds.png + seeds.gif, inks.png, seasons.png, themes.png, dials.png (python3, Pillow, pdftoppm)
 make grow-6                 # growth animation of seed 6 -> build/grow-6.gif + .mp4 (ffmpeg)
 make grow-6 EXPLAIN=1       # the same with the free discs marked -> build/grow-6-explain.*
+make svg SEED=7             # the same page as SVG, without TeX -> build/svg-7.svg
+make playground             # the browser playground at http://localhost:8000/web/
 ```
 
 No TeX installed? Build the image once and run everything in it:
@@ -277,7 +331,7 @@ docker build -t florilegium-tex tools
 make RUN=tools/in-docker
 ```
 
-Or paste `florilegium.sty`, the nine `.lua` files and one of the `.tex` files into an
+Or paste `florilegium.sty`, the `.lua` files and one of the `.tex` files into an
 [Overleaf](https://www.overleaf.com) project and set the compiler to LuaLaTeX.
 
 Use it in your own document:
@@ -381,6 +435,12 @@ yet done.
   Tommy Ettinger's public-domain generator.
 - `\florilegiumornament`, its `ink` and `seed=random` keys, and the `density` option answer
   [issue #4](https://github.com/kevinraymond/florilegium/issues/4) from rubyFeedback.
+- The playground runs the Lua in the browser with [wasmoon](https://github.com/ceifa/wasmoon)
+  (MIT) and typesets the math theme's equations with [MathJax](https://www.mathjax.org) (Apache 2.0),
+  both loaded from jsDelivr. It is set in Igino Marini's IM FELL DW Pica (SIL OFL) and Latin Modern
+  (GUST e-foundry, GUST Font License); see `web/fonts/README.md`. Its color-blindness views use
+  the model of Machado, Oliveira & Fernandes, *A Physiologically-based Model for Simulation of
+  Color Vision Deficiency* (IEEE TVCG, 2009).
 - The math theme's figures keep the names of the people they come from: Maurer's roses, Vogel's
   model of the sunflower, Temple Fay's butterfly curve, the Petersen graph, Koch's snowflake,
   Hilbert's curve, Lissajous figures, the gasket of Apollonius.
