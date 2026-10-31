@@ -1,4 +1,5 @@
 -- authored.lua -- the authored composition of florilegium.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Everything here is placed by hand, for A4 with a 68 mm left margin (the
 -- margin column is x in [0.3, 6.4] cm, the page 29.7 cm tall): three stems

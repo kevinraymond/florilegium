@@ -1,4 +1,5 @@
 -- grow.lua -- the grown composition of florilegium (LuaLaTeX only).
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- A plant, not a packing. Everything grows from one root in the bottom-left
 -- corner of the page:

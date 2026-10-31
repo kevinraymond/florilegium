@@ -1,4 +1,5 @@
 -- ink.lua -- the drawing core of florilegium: geometry in Lua, raw PDF out.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Everything is computed here and written as PDF path operators into a literal
 -- node, so TeX does no arithmetic at all. A drawing is made in a local frame
@@ -18,7 +19,8 @@ local rad = pi / 180
 local CM = 72 / 2.54                       -- bp per cm
 
 -- ---------------------------------------------------------------- random
--- mulberry32: small, fast, identical on every platform (math.random is not)
+-- mulberry32 (Tommy Ettinger, 2017, public domain): small, fast, identical on
+-- every platform (math.random is not)
 function M.rng(seed)
   local s = floor(seed) & 0xffffffff
   local r = {}
@@ -70,6 +72,8 @@ local function srgb_dec(c) return c <= 0.04045 and c / 12.92 or ((c + 0.055) / 1
 local function srgb_enc(c) return c <= 0.0031308 and 12.92 * c or 1.055 * c ^ (1 / 2.4) - 0.055 end
 local function cbrt(x) return x < 0 and -((-x) ^ (1 / 3)) or x ^ (1 / 3) end
 
+-- OKLCH is Oklab in polar form. Oklab and the matrices below are Björn
+-- Ottosson's ("A perceptual color space for image processing", 2020, public domain).
 local function rgb_to_oklch(r, g, b)
   r, g, b = srgb_dec(r), srgb_dec(g), srgb_dec(b)
   local l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)

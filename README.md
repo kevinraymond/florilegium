@@ -366,6 +366,22 @@ gets garden *n*. Reproducibility is what makes the document stable enough to typ
 See [CLAUDE.md](CLAUDE.md) for a handoff-style map of the code, the tunables, and ideas not
 yet done.
 
+## Credits
+
+- The [Reddit post](https://www.reddit.com/r/LaTeX/comments/1xixznw/how_do_you_make_these_flowers_in_latex/)
+  that asked the question (see [Origin](#origin)).
+- The growth loop follows Wong, Zongker & Salesin,
+  [*Computer-Generated Floral Ornament*](https://dl.acm.org/doi/10.1145/280814.280948) (SIGGRAPH 1998).
+- The tone ramp is computed in [Oklab](https://bottosson.github.io/posts/oklab/), Björn Ottosson's
+  perceptual color space; the conversion matrices in `ink.lua` are his, released into the public domain.
+- The random numbers come from [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c),
+  Tommy Ettinger's public-domain generator.
+- `\florilegiumornament`, its `ink` and `seed=random` keys, and the `density` option answer
+  [issue #4](https://github.com/kevinraymond/florilegium/issues/4) from rubyFeedback.
+- The math theme's figures keep the names of the people they come from: Maurer's roses, Vogel's
+  model of the sunflower, Temple Fay's butterfly curve, the Petersen graph, Koch's snowflake,
+  Hilbert's curve, Lissajous figures, the gasket of Apollonius.
+
 ## License
 
-MIT.
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 Kevin Raymond.

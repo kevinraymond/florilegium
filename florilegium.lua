@@ -1,5 +1,6 @@
 -- florilegium.lua -- the TeX-facing side of florilegium.sty: page geometry,
 -- colors, seeds, the TikZ transform, and the dispatch of primitives.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 
 local ink = require("ink")
 local flora = require("flora")

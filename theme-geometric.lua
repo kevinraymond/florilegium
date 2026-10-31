@@ -1,5 +1,6 @@
 -- theme-geometric.lua -- a theme for florilegium: the same plant, cut from flat
 -- shapes with straight edges.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- grow.lua draws every primitive through the current theme, so the garden grows
 -- exactly as it does with flora: the stems sway up the column, leaves hang at the

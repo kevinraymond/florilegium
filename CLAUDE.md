@@ -25,7 +25,7 @@ the wider side margin, mirrored when that is the right one (two-sided documents)
 | `flora.lua` | the primitives: `petal flower lily blossom floret bud bell leaf leaflet stem cyme sprig umbel seedhead tendril sparkle rosette hedera ghost`, the visitors `butterfly bee snail bird`, plus `branch_path`. |
 | `grow.lua` | grown composition: regions, grid, stems, marks, visitors on the stems, leaves at nodes, branch loop, falling petals, filler, footer tail; seasons; animation events. Also exports the **motif table** (`M.motifs`) and layer numbers used by `authored.lua`, `M.regions(g, layout)` and `M.field(rects)` (the free-space grid, shared with theme-math), and `M.theme(name)`, which sets the primitives (`F`), motif rows and optional composition of the current theme. |
 | `theme-geometric.lua` | the geometric theme: the grown plant with every primitive redrawn flat and straight-edged (`stem`: straight runs ~L/4 apart with mitered corners; `leaf`: kite or toothed polygon in a light and a dark facet, straight white veins; `flower`: rhombus rosette or layered star polygons; `lily bud bell blossom floret cyme sprig umbel tendril`(square spiral) `rosette hedera butterfly bee snail bird`), flat tones only; `motifs()` puts blossoms/budding/bells on straight stalks and adds a `crystal` row (flat-shaded Platonic solid). |
-| `figures.lua` | the math figures: `figures` (14: `maurer spirograph lissajous polyhedron knot gasket koch hilbert chords golden parabola petersen vogel fay`, each `pick(layout)` / `draw(rng, R, p)` / `caption(p)`), `families` (13 progressions: `values`, `label`, `title`, `pick`, `draw(rng, R, v, p)`), helpers `maurer phyllotaxis fay vogel hull_of` (faces from nearest-neighbor triples: uniform solids only) `truncate solid compass caption_width`. |
+| `figures.lua` | the math figures: `figures` (14: `maurer hypotrochoid lissajous polyhedron knot gasket koch hilbert chords golden parabola petersen vogel fay`, each `pick(layout)` / `draw(rng, R, p)` / `caption(p)`), `families` (13 progressions: `values`, `label`, `title`, `pick`, `draw(rng, R, v, p)`), helpers `maurer phyllotaxis fay vogel hull_of` (faces from nearest-neighbor triples: uniform solids only) `truncate solid compass caption_width`. |
 | `theme-math.lua` | the math theme, a composition of its own (`page(g, grow)`): regions = column, a footer band to 72% of the text width, spill; 1. a large corner figure, 2. one or two families down the column, each figure larger than the last, copper arrows, 3. equations (TeX, `EQUATIONS`, base LaTeX only) along the footer and in rows under the text, 4. largest hole first: figure / TeX glyph (`GLYPHS`, scaled, tilted, colored) / dot, proxies at k 0.5–0.62 so things overlap; a size gradient toward the corner. `density` scales the count. |
 | `authored.lua` | authored composition: the hand-placed "score" (STEMS, LEAVES, BRANCHES, GHOSTS, VISITORS, SNAIL, ACCENTS, FOOT) for A4 with a 68 mm left margin. |
 | `initial.lua` | decorated initials: glyph outline via `fonts.handlers.otf.readers.loadshapes`, even-odd inside test, clearance grid, the vine over/under the letter, leaflets, flowers in the gaps, tile frame. |
@@ -68,6 +68,13 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
 ## Conventions and traps
 
 - **US spelling everywhere** (color, center, gray, meter) — code, comments, docs.
+- **Credits and licenses.** Every file a user copies (`florilegium.sty`, the nine `.lua`,
+  `postscript/florilegium.ps`) carries the copyright line; the `.sty` and the `.ps` (which
+  travels alone) carry the full MIT text. A borrowed algorithm or published constant gets a
+  credit where it is used and a line under README's Credits (Ottosson's Oklab, Ettinger's
+  mulberry32, Wong et al.). Trademarks stay out of user-facing names (`hypotrochoid`, not
+  Spirograph); data with a license of its own stays out of the package (MSC2020 is
+  CC BY-NC-SA: bare codes only).
 - **Raw literals bypass TikZ transforms.** A primitive called inside a TikZ scope must
   read pgf's matrix itself (`florilegium.lua: sync_transform`). Inside the margin picture
   the transform is just cm→bp from the page's lower-left corner.

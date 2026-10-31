@@ -1,6 +1,7 @@
 %!PS
 %%Title: florilegium.ps
 %%Creator: florilegium
+%%Copyright: (c) 2026 Kevin Raymond, MIT License (below)
 %%BoundingBox: 0 0 595 842
 %%DocumentNeededResources: font Times-Roman Times-Bold Times-Italic
 %
@@ -21,6 +22,30 @@
 % has it as an extension, enabled by -dALLOWPSTRANSPARENCY. Without it (or on a
 % printer) every translucent fill is mixed with the color it lands on, guessed
 % as the last opaque wash, and painted opaque: flatter, but the same garden.
+
+% https://github.com/kevinraymond/florilegium
+%
+% MIT License
+%
+% Copyright (c) 2026 Kevin Raymond
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in all
+% copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+% SOFTWARE.
 
 % ---------------------------------------------------------------- settings
 /Seed where { pop } { /Seed 0 def } ifelse
@@ -89,7 +114,9 @@ florilegium begin
 % ---------------------------------------------------------------- color
 % A tone ramp derived from the ink color: tone(0) is the darkest navy, tone(1)
 % the palest mist, all at the hue of the ink, computed in OKLCH so the light end
-% stays blue instead of turning gray. 101 colors, computed once.
+% stays blue instead of turning gray. 101 colors, computed once. OKLCH is Oklab
+% in polar form; Oklab and its matrices are Bjorn Ottosson's ("A perceptual
+% color space for image processing", 2020, public domain).
 /srgbdec { dup 0.04045 le { 12.92 div } { 0.055 add 1.055 div 2.4 exp } ifelse } bind def
 /srgbenc { dup 0.0031308 le { 12.92 mul } { 1 2.4 div exp 1.055 mul 0.055 sub } ifelse } bind def
 /cbrt { dup 0 lt { neg 1 3 div exp neg } { 1 3 div exp } ifelse } bind def

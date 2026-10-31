@@ -1,5 +1,6 @@
 -- theme-math.lua -- a theme for florilegium that is not a plant: mathematics
 -- cascading down the margin and across the bottom of the page.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Shapes, symbols and equations, overlapping a little so they blend:
 --   - in the corner where the column meets the bottom, one large figure: an
@@ -140,7 +141,7 @@ function M.page(g, grow)
     local R = heading and (mk.arg == 1 and 0.42 or 0.32) or 0.6
     local x, y = g.colright - R - 0.25, mk.y + 0.12
     if free_at(x, y) >= R + 0.05 then
-      figure(heading and "spirograph" or (FIG[mk.arg] and mk.arg or "maurer"), x, y, R, heading)
+      figure(heading and "hypotrochoid" or (FIG[mk.arg] and mk.arg or "maurer"), x, y, R, heading)
       disc(x, y, R + 0.1, 1)
     end
   end

@@ -1,4 +1,5 @@
 -- initial.lua -- a decorated initial for florilegium (LuaLaTeX only).
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- A square tile at the start of a paragraph: the letter, its outline read from
 -- an OpenType font and painted like a petal; a vine that winds over and under

@@ -1,4 +1,5 @@
 -- figures.lua -- mathematical figures for florilegium's themes, drawn with ink.lua.
+-- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Line drawings in the ink with a pale wash, the copper kept for a focus or a guide
 -- line. Each figure draws inside a disc of radius R (cm) around the origin.
@@ -223,10 +224,10 @@ FIG.maurer = {
 
 -- a hypotrochoid, and how it is made: the fixed circle (dashed), the rolling
 -- circle at one moment, and the arm from its center to the pen (copper)
-local SPIRO = { { 5, 3, 0.8 }, { 7, 4, 0.9 }, { 8, 3, 0.75 }, { 5, 2, 0.9 }, { 7, 3, 0.7 }, { 9, 4, 0.85 } }
-FIG.spirograph = {
+local HYPO = { { 5, 3, 0.8 }, { 7, 4, 0.9 }, { 8, 3, 0.75 }, { 5, 2, 0.9 }, { 7, 3, 0.7 }, { 9, 4, 0.85 } }
+FIG.hypotrochoid = {
   w = 2, max = 2, r = { 0.7, 1.3 },
-  pick = function(L) local p = SPIRO[L.int(1, #SPIRO)] return { p[1], p[2], p[3], L.range(0, 360) } end,
+  pick = function(L) local p = HYPO[L.int(1, #HYPO)] return { p[1], p[2], p[3], L.range(0, 360) } end,
   draw = function(rng, R, p)
     local Rf, q, d = p[1], p[2], p[3] * p[2]
     local k, A = (Rf - q) / q, Rf - q
@@ -746,7 +747,7 @@ FIG.fay = {
 
 -- a fixed order, for the weighted choice (pairs() is not)
 M.figures, M.solids, M.rotation, M.cyclic = FIG, SOLIDS, rotation, cyclic
-M.figure_order = { "polyhedron", "knot", "maurer", "spirograph", "lissajous", "gasket", "koch", "hilbert",
+M.figure_order = { "polyhedron", "knot", "maurer", "hypotrochoid", "lissajous", "gasket", "koch", "hilbert",
   "chords", "golden", "parabola", "petersen", "vogel", "fay" }
 
 -- ---------------------------------------------------------------- the fleuron
@@ -871,12 +872,12 @@ FAM.chords = {
   draw = function(rng, R, v, p) FIG.chords.draw(rng, R, { v, p[1], p[2] }) end,
 }
 
-FAM.spiro = {
+FAM.hypotrochoid = {
   values = { 0.25, 0.5, 0.75, 1.0, 1.25 },
   pick = function(L) local r = ({ { 5, 3 }, { 7, 4 }, { 5, 2 }, { 8, 3 } })[L.int(1, 4)] return { r[1], r[2], L.range(0, 360) } end,
   title = function(p) return string.format("hypotrochoids $%d:%d$", p[1], p[2]) end,
   label = function(v) return string.format("$d=%sr$", ({ [0.25] = "\\frac14", [0.5] = "\\frac12", [0.75] = "\\frac34", [1.0] = "", [1.25] = "\\frac54" })[v]) end,
-  draw = function(rng, R, v, p) FIG.spirograph.draw(rng, R, { p[1], p[2], v, p[3] }) end,
+  draw = function(rng, R, v, p) FIG.hypotrochoid.draw(rng, R, { p[1], p[2], v, p[3] }) end,
 }
 
 FAM.vogel = {
@@ -949,6 +950,6 @@ FAM.maurer = {
 
 -- a fixed order, for the weighted choice (pairs() is not)
 M.family_order = { "cube", "rose", "koch", "knots", "lissajous", "vogel", "chords", "hilbert", "dodeca",
-  "archimedes", "superellipse", "spiro", "maurer" }
+  "archimedes", "superellipse", "hypotrochoid", "maurer" }
 
 return M
