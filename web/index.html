@@ -49,7 +49,7 @@
   .table { display: grid; grid-template-columns: auto minmax(330px, 420px); gap: 56px; justify-content: center; align-items: start; padding: 48px 40px 0; }
 
   /* the proof: a sheet with its crop marks, its margin measured above it */
-  .sheet { position: relative; height: max(400px, calc(100dvh - 316px)); aspect-ratio: var(--ar, 0.70707); }
+  .sheet { position: relative; height: max(420px, calc(100dvh - 214px)); aspect-ratio: var(--ar, 0.70707); }
   .proof { position: absolute; inset: 0; margin: 0; background: var(--paper); container-type: inline-size;
     box-shadow: 0 1px 1px rgba(40, 30, 10, .12), 0 10px 30px rgba(40, 30, 10, .16); }
   .proof .garden { position: absolute; inset: 0; width: 100%; height: 100%; transition: opacity .3s; }
@@ -90,7 +90,7 @@
   .foot span { position: absolute; right: 0; top: 13px; font-family: var(--fell); font-style: italic; font-size: 13.5px; color: var(--copper-700);
     background: var(--paper); padding: 1px 7px 2px; border: 1px solid var(--copper-200); border-radius: 0 0 4px 4px; white-space: nowrap; }
 
-  /* under the proof: how it reads to others, and the seeds on either side */
+  /* under the proof: how it reads to others */
   .below { margin-top: 30px; display: grid; gap: 10px; }
   .seenby { font-size: 16px; color: var(--table-faint); }
   .seenby > em { margin-right: 6px; }
@@ -101,12 +101,6 @@
   .sep { margin: 0 7px; opacity: .6; }
   .verdict { display: block; font-style: italic; margin-top: 3px; min-height: 1.3em; color: var(--table-ink); }
   .verdict button { font-style: italic; color: var(--mark); border-bottom: 1px dotted currentColor; margin-left: 4px; }
-  .seeds { display: flex; gap: 10px; align-items: flex-end; overflow-x: auto; padding: 4px 4px 2px; height: 96px; }
-  .seeds button { display: grid; justify-items: center; gap: 2px; color: var(--table-faint); font-size: 14px; flex: none; }
-  .seeds .thumb { width: 44px; height: 62px; background: var(--paper); box-shadow: 0 1px 2px rgba(40, 30, 10, .25); transition: transform .15s; display: block; object-fit: contain; }
-  .seeds button:hover .thumb { transform: translateY(-3px); }
-  .seeds button[aria-current=true] { color: var(--table-ink); }
-  .seeds button[aria-current=true] .thumb { width: 52px; height: 73px; outline: 1.5px solid var(--copper-500); outline-offset: 3px; }
 
   /* the colophon: a slip of the same paper, its copper words the controls */
   .slip { background: var(--paper); color: var(--ink-900); padding: 26px 32px 24px; box-shadow: 0 1px 1px rgba(40, 30, 10, .12), 0 8px 24px rgba(40, 30, 10, .14); }
@@ -220,7 +214,6 @@
         <em>Seen by</em><span id="seenby"></span>
         <span class="verdict" id="verdict"></span>
       </div>
-      <nav class="seeds" id="seeds" aria-label="Neighboring seeds"></nav>
     </div>
   </section>
 
