@@ -41,4 +41,11 @@ downloaded is the one CI built, run
 gh attestation verify florilegium.pdf --repo kevinraymond/florilegium
 ```
 
+The attestation is also attached to the release, as `florilegium-pdfs.sigstore.json`. Keep it
+with the PDF, and the check doesn't need to look the attestation up on GitHub.
+
+```sh
+gh attestation verify florilegium.pdf --repo kevinraymond/florilegium --bundle florilegium-pdfs.sigstore.json
+```
+
 Published releases are immutable, so their PDFs and tags cannot be swapped afterwards.
