@@ -20,7 +20,7 @@ These are the promises a report can hold the package to.
   document's `.aux` file.
 - Every page is computed from the seed. The one exception is `seed=random`, which you ask
   for by name.
-- `svg.lua` writes only to standard output or to the file given with `-o`.
+- `florilegium-svg.lua` writes only to standard output or to the file given with `-o`.
 - The [playground](https://kevinraymond.github.io/florilegium/) runs entirely in your
   browser. Nothing you choose leaves it; there are no analytics and no server. It loads two
   libraries from jsDelivr, wasmoon and MathJax, and the browser runs them only if they hash to

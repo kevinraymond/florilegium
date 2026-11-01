@@ -5,7 +5,7 @@
 `florilegium.ps` grows florilegium's margin garden in PostScript, the language many printers
 speak. It is one self-contained file. The interpreter that runs it, Ghostscript or a printer,
 computes every petal, leaf and stem from a seed while it reads the page, and typesets two
-pages of text that explain how. It ports `ink.lua`, `flora.lua` and `grow.lua` (the drawing
+pages of text that explain how. It ports `florilegium-ink.lua`, `florilegium-flora.lua` and `florilegium-grow.lua` (the drawing
 core, the primitives and the growth loop that LuaLaTeX runs) procedure for procedure.
 
 ## Running it
@@ -101,11 +101,11 @@ porting it again:
   anything, so it knows where the headings are (each gets a spray of copper blossoms) and
   where the text ends (on the last page the garden fills the space below).
 
-The port has the grown margin of `grow.lua` with all its primitives, the seasons, the
+The port has the grown margin of `florilegium-grow.lua` with all its primitives, the seasons, the
 visitors, the heading marks, the garden under the last line and the ivy-leaf head rule. It
 has no animation, initials, themes, mirrored pages, density or intensity, ornaments in the
 text, or authored composition. Nothing keeps it in step with the Lua: a change to a primitive
-or to `grow.lua` has to be made here as well, by hand.
+or to `florilegium-grow.lua` has to be made here as well, by hand.
 
 ## Ghostscript notes
 

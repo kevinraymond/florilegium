@@ -1,4 +1,4 @@
--- flora.lua -- the primitives of florilegium, drawn with ink.lua.
+-- florilegium-flora.lua -- the primitives of florilegium, drawn with florilegium-ink.lua.
 -- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Every primitive draws in its own local frame (centimeters, origin at its base
@@ -8,7 +8,7 @@
 -- edges, pale streaks lifted out, a few fine ink lines on top. There are almost
 -- no outlines; edges are defined by the wash.
 
-local ink = require("ink")
+local ink = require("florilegium-ink")
 local M = {}
 
 local sin, cos, sqrt, pi, abs, floor, max, min = math.sin, math.cos, math.sqrt, math.pi, math.abs, math.floor, math.max, math.min

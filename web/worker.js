@@ -1,5 +1,5 @@
 // worker.js -- grows a florilegium page off the main thread: the package's own
-// Lua (svg.lua and what it requires) run by wasmoon, Lua 5.4 compiled to
+// Lua (florilegium-svg.lua and what it requires) run by wasmoon, Lua 5.4 compiled to
 // WebAssembly. The same Lua makes the same garden as LuaLaTeX, byte for byte.
 // Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 
@@ -16,7 +16,8 @@ async function pinned([url, integrity], type) {
   return URL.createObjectURL(new Blob([await r.arrayBuffer()], { type }))
 }
 
-const MODULES = ['ink', 'flora', 'grow', 'florilegium', 'authored', 'figures', 'theme-geometric', 'theme-math', 'svg']
+const MODULES = ['florilegium', 'florilegium-ink', 'florilegium-flora', 'florilegium-grow', 'florilegium-authored',
+  'florilegium-figures', 'florilegium-theme-geometric', 'florilegium-theme-math', 'florilegium-svg']
 
 // the published site has the .lua files beside this one; the repository has them one up
 async function fetchLua(name) {
@@ -59,7 +60,7 @@ self.onmessage = async (e) => {
   try {
     const t0 = performance.now()
     const r = await lua.doString(`
-      local svg, g, more = require("svg").page(${luaTable(options)})
+      local svg, g, more = require("florilegium-svg").page(${luaTable(options)})
       return { svg = svg, pw = g.pw, ph = g.ph, textleft = g.textleft, textright = g.textright,
         ytop = g.ytop, ybot = g.ybot, mirror = g.mirror or false, captions = more.captions, stats = more.stats }`)
     self.postMessage({ id, ...r, ms: performance.now() - t0 })

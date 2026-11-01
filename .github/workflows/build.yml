@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # svg.lua must draw the same page under every Lua (texlua, 5.3, 5.4 and the playground's
+  # florilegium-svg.lua must draw the same page under every Lua (texlua, 5.3, 5.4 and the playground's
   # wasmoon); a few seconds, so a pull request hears about a broken page first
   lua:
     runs-on: ubuntu-latest

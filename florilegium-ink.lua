@@ -1,4 +1,4 @@
--- ink.lua -- the drawing core of florilegium: geometry in Lua, raw PDF out.
+-- florilegium-ink.lua -- the drawing core of florilegium: geometry in Lua, raw PDF out.
 -- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
 -- Everything is computed here and written as PDF path operators into a literal

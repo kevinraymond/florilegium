@@ -1,5 +1,5 @@
 #!/bin/sh
-# Draws a set of varied pages with svg.lua under each Lua given (default: lua5.3 and lua5.4)
+# Draws a set of varied pages with florilegium-svg.lua under each Lua given (default: lua5.3 and lua5.4)
 # and checks that every interpreter draws the same page byte for byte, as texlua and the
 # browser's wasmoon do. CI runs it on every pull request; locally:
 #   tools/svgcheck.sh                     # lua5.3 and lua5.4
@@ -10,7 +10,7 @@ set -eu
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 
-# one line per page: the options svg.lua gets
+# one line per page: the options florilegium-svg.lua gets
 pages='--seed 7
 --seed 3 --theme geometric --season autumn --textend 120mm
 --page 2 --twoside --left 25mm --right 65mm --density 0.3
@@ -25,7 +25,7 @@ for lua in "$@"; do
   while read -r opts; do
     n=$((n + 1))
     # shellcheck disable=SC2086 # the options are meant to split
-    "$lua" svg.lua $opts -o "$out/$lua-$n.svg" 2>"$out/err" </dev/null || { cat "$out/err"; echo "FAIL  $lua svg.lua $opts"; exit 1; }
+    "$lua" florilegium-svg.lua $opts -o "$out/$lua-$n.svg" 2>"$out/err" </dev/null || { cat "$out/err"; echo "FAIL  $lua florilegium-svg.lua $opts"; exit 1; }
     if [ "$lua" != "$1" ] && ! cmp -s "$out/$1-$n.svg" "$out/$lua-$n.svg"; then
       echo "FAIL  $lua and $1 draw different pages for: $opts"; status=1
     fi
