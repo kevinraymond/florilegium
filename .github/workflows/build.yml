@@ -36,6 +36,10 @@ jobs:
       - name: the same pages under both
         run: tools/svgcheck.sh lua5.3 lua5.4
 
+  # The four documents, which a release carries, and three pages that are only checked: the
+  # specimen sheets and the ornaments draw through \florilegiumdraw and \florilegiumornament,
+  # which read pgf's transform from its internal macros (florilegium.lua: sync_transform), so a
+  # pgf that renamed them would fail here and not in someone's document.
   pdfs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -43,7 +47,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: authored and grown (lualatex)
+      - name: the documents, specimen sheets and ornaments (lualatex)
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: |
@@ -51,6 +55,9 @@ jobs:
             florilegium-grow.tex
             showcase.tex
             spread.tex
+            specimen.tex
+            specimen-geometric.tex
+            ornaments.tex
           latexmk_use_lualatex: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
