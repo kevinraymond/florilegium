@@ -114,6 +114,12 @@
 \definecolor{accent}{HTML}{B4662F}
 
 \directlua{florilegium = require("florilegium")}
+%% Every Lua file of a release carries its version, and florilegium.lua compares them
+%% and this file's \ProvidesPackage as it loads. A florilegium.lua from before that
+%% has no version at all, so this file says so itself.
+\directlua{if not florilegium.version then
+  tex.error("florilegium: florilegium.lua is from an earlier release than florilegium.sty",
+    {"Copy florilegium.sty and every florilegium*.lua from one release."}) end}
 \ifflorilegium@visitors\else\directlua{florilegium.visitors = false}\fi
 \ifdefined\florilegium@density\directlua{florilegium.density = tonumber("\florilegium@density") or 1}\fi
 \ifdefined\florilegium@intensity\directlua{florilegium.intensity = tonumber("\florilegium@intensity") or 1}\fi
