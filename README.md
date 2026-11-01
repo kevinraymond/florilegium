@@ -42,6 +42,7 @@ else it does:
 | composition | **authored**: stems, leaves and flowers placed by hand, every parameter sampled | **grown**: a plant grown to fit the page by a greedy space-filling loop |
 | adapts to | nothing (tuned for A4, 68 mm margin) | the page layout, and the free space below the text on the last page |
 | preview | <img src="gallery/preview-authored.png" alt="authored" width="300"> | <img src="gallery/preview-grown.png" alt="grown" width="300"> |
+| PDF | [florilegium.pdf](https://github.com/kevinraymond/florilegium/releases/latest/download/florilegium.pdf) | [florilegium-grow.pdf](https://github.com/kevinraymond/florilegium/releases/latest/download/florilegium-grow.pdf) |
 
 Both PDFs are self-describing: the body text is the write-up of how the margin is drawn.
 
@@ -78,7 +79,8 @@ painting order. `make grow-6` renders one seed this way (`build/grow-6.gif` and 
 ![the three pages of showcase.tex](gallery/preview-showcase.png)
 
 *`showcase.tex`, "A year in the margin": spring on the first page, summer, autumn on the
-last. Each section describes the feature it shows.*
+last. Each section describes the feature it shows. Download
+[showcase.pdf](https://github.com/kevinraymond/florilegium/releases/latest/download/showcase.pdf).*
 
 The grown margin can respond to the document around it:
 
@@ -215,7 +217,8 @@ theme's (`crystal` with `geometric`; `knot`, `polyhedron`, `koch`, ... with `mat
 
 *`spread.tex`, pages 2 and 3: a two-sided document with a wide outer margin. The garden
 grows on the left of the left-hand page and, mirrored, on the right of the right-hand page.
-The last page also switches to the geometric theme.*
+The last page also switches to the geometric theme. Download
+[spread.pdf](https://github.com/kevinraymond/florilegium/releases/latest/download/spread.pdf).*
 
 The garden grows in whichever side margin is wider, so there is nothing to set. In a
 two-sided document (`twoside` with a wide `outer` margin) it changes sides with the page. A
