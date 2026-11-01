@@ -90,6 +90,14 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   for the whole run. The files stay flat in the root: LuaTeX looks for `.lua` in `LUAINPUTS`,
   not `TEXINPUTS`, so a subfolder would need both set wherever LuaLaTeX runs. A theme still
   named `theme-<name>.lua` loads with a warning (`florilegium-grow.lua: load_theme`).
+- **Versions.** Each of those files carries `M.version` (the release), and `florilegium.lua`
+  checks at load that every part in `PARTS` and the `.sty`'s `\ProvidesPackage` v-number agree,
+  because each file is found on its own and two releases can meet (an old set in `~/texmf`, a
+  newer `.sty` beside the document). It preloads every part but `initial` (checked with the
+  first initial) and `svg` (which loads `florilegium.lua`, so it is checked then). A new module
+  goes into `PARTS` and the preload with an `M.version` line; a user's own theme needs neither.
+  The `.sty` itself catches a `florilegium.lua` with no version. Keep `%`, `#` and `~` out of
+  Lua written inside `\directlua` in the `.sty` (TeX's comment, parameter and active characters).
 - **Credits and licenses.** Every file a user copies (`florilegium.sty`, the ten `.lua`,
   `postscript/florilegium.ps`) carries the copyright line; the `.sty` and the `.ps` (which
   travels alone) carry the full MIT text. A borrowed algorithm or published constant gets a
@@ -205,7 +213,10 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   only for security (the user finds per-dependency PRs annoying; security-update PRs stay off),
   plus one grouped version-update PR a month. Main needs a PR with `lua` and `pdfs` green (admin
   bypass); `v*` tags can't be moved or deleted.
-- **Releases** are immutable once published: push an annotated tag (`git tag -a v1.3 -m v1.3 &&
+- **Releases** are immutable once published. First set the new version everywhere in one commit,
+  the `\ProvidesPackage` date and v-number in the `.sty` and every `M.version` with
+  `sed -i -E 's/^M\.version = "[^"]*"/M.version = "1.3"/' florilegium*.lua` (a missed one makes
+  every build fail). Then push an annotated tag (`git tag -a v1.3 -m v1.3 &&
   git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
   then write the notes and `gh release edit v1.3 --notes-file … --draft=false`. Assets can't be
   added after that, so never publish a draft before CI has attached the four PDFs and
