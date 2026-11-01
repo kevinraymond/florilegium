@@ -154,7 +154,7 @@ function openChooser(t) {
   t.setAttribute('aria-expanded', 'true')
   chooser.innerHTML = ''
   if (k === 'seed') {
-    chooser.innerHTML = `<form><input type="number" min="1" max="999999" value="${state.seed}" aria-label="Seed"><button class="term" type="submit">grow it</button></form>
+    chooser.innerHTML = `<form><input type="number" min="1" max="999999" value="${esc(state.seed)}" aria-label="Seed"><button class="term" type="submit">grow it</button></form>
       <button role="option" data-v="random"><span class="mark"></span><span>a seed at random</span></button>`
     chooser.querySelector('form').onsubmit = (e) => { e.preventDefault(); pick('seed', Math.max(1, Math.min(999999, Math.round(+e.target[0].value) || 1))) }
     chooser.querySelector('[data-v=random]').onclick = () => pick('seed', 1 + Math.floor(Math.random() * 99999))
@@ -456,7 +456,7 @@ function pageText(m) {
     : `Nothing on this page is a picture of a flower. There are no stored shapes and no drawings to copy: every stem is a path along
       a noisy curve, every leaf a blade around its spine, every flower a ring of petals each a little different from the last, and the seed chooses all of it.`)
   P.push(`Every page of a long document grows its own margin, from its own seed and fitted to its own space${isMath() ? '' : ', and the seasons can turn from the first page to the last'}.`)
-  $('#text').innerHTML = `<h2><span>1</span>Seed ${s.seed}</h2>` + P.map((p) => `<p>${esc(p.replace(/\s+/g, ' ').trim())}</p>`).join('')
+  $('#text').innerHTML = `<h2><span>1</span>Seed ${esc(s.seed)}</h2>` + P.map((p) => `<p>${esc(p.replace(/\s+/g, ' ').trim())}</p>`).join('')
   fit()
 }
 

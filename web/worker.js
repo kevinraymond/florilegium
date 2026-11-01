@@ -3,8 +3,18 @@
 // WebAssembly. The same Lua makes the same garden as LuaLaTeX, byte for byte.
 // Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 
-const WASMOON = 'https://cdn.jsdelivr.net/npm/wasmoon@1.16.0/dist/'
-importScripts(WASMOON + 'index.js')
+// wasmoon comes from jsDelivr, but only as the exact bytes published to npm: the browser
+// checks each file against the SHA-384 beside its URL (Subresource Integrity) and refuses
+// anything else. A new version needs new hashes; tools/sri.sh prints them.
+const LIB = ['https://cdn.jsdelivr.net/npm/wasmoon@1.16.0/dist/index.js', 'sha384-5L/cu3YcvA5cVntTMFaEw24CrZg2ka3UYPm+hXLjp3jKXUSROddLvOhoBky9PtwG']
+const WASM = ['https://cdn.jsdelivr.net/npm/wasmoon@1.16.0/dist/glue.wasm', 'sha384-txHgNrBRsW+tcBOWQ42NC3sHL0NyMefsw2VSSB2jZUnQ02jMHmPAxS0cPzDbEjQ/']
+
+// a checked file as a local blob: URL, so nothing unchecked is ever run
+async function pinned([url, integrity], type) {
+  const r = await fetch(url, { integrity })
+  if (!r.ok) throw new Error('cannot load ' + url)
+  return URL.createObjectURL(new Blob([await r.arrayBuffer()], { type }))
+}
 
 const MODULES = ['ink', 'flora', 'grow', 'florilegium', 'authored', 'figures', 'theme-geometric', 'theme-math', 'svg']
 
@@ -18,11 +28,15 @@ async function fetchLua(name) {
 }
 
 const ready = (async () => {
-  const factory = new self.wasmoon.LuaFactory(WASMOON + 'glue.wasm')
+  const [lib, wasm] = await Promise.all([pinned(LIB, 'text/javascript'), pinned(WASM, 'application/wasm')])
+  importScripts(lib)
+  const factory = new self.wasmoon.LuaFactory(wasm)
   const sources = await Promise.all(MODULES.map(fetchLua))
   await Promise.all(MODULES.map((m, i) => factory.mountFile('/florilegium/' + m + '.lua', sources[i])))
   const lua = await factory.createEngine()
   await lua.doString('package.path = "/florilegium/?.lua;" .. package.path')
+  URL.revokeObjectURL(lib)
+  URL.revokeObjectURL(wasm)
   return lua
 })()
 
