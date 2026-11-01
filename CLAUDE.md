@@ -41,9 +41,9 @@ published to GitHub Pages.
 | `ornaments.tex` | `\florilegiumornament` demo (`gallery/ornaments.png`). |
 | `gallery.tex`, `tools/gallery.py` | one short page per variant (`\galleryink`, `\galleryage`, `\gallerytheme`) → `gallery/seeds.png` + `seeds.gif`, `inks.png`, `seasons.png`, `themes.png`, `dials.png` (`--options density=0.4,...`, via `\PassOptionsToPackage`). |
 | `animation.tex`, `tools/animate.py` | growth animation: one page per frame (`\florilegiumframe`), parallel LuaLaTeX jobs, pdftoppm, ffmpeg → `build/grow-N.gif` + `.mp4`. `tools/animcheck.lua` checks that the last frame equals the page. |
-| `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image; `make RUN=tools/in-docker` when there's no local TeX. |
+| `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image (Ubuntu 24.04, pinned by digest for Scorecard; Dependabot leaves it alone); `make RUN=tools/in-docker` when there's no local TeX. |
 | `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials, themes, mirror, density/intensity, ornaments or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `grow.lua` has to be made there too. |
-| `.github/` | `workflows/build.yml` (jobs `lua` = `tools/svgcheck.sh lua5.3 lua5.4` and `pdfs` = the four PDFs on every PR and push; `release` on a `v*` tag push: attestation + draft release; `gallery` on dispatch), `pages.yml`, `scorecard.yml` (OpenSSF, weekly; must stay shaped like Scorecard's example), `dependabot.yml` (one grouped PR a month, 7-day cooldown), issue forms, PR template. |
+| `.github/` | `workflows/build.yml` (jobs `lua` = `tools/svgcheck.sh lua5.3 lua5.4` and `pdfs` = the four PDFs on every PR and push; `release` on a `v*` tag push: attestation + draft release with the PDFs and the attestation as `florilegium-pdfs.sigstore.json`, which Scorecard counts as a signature; `gallery` on dispatch), `pages.yml`, `scorecard.yml` (OpenSSF, weekly; must stay shaped like Scorecard's example), `dependabot.yml` (one grouped PR a month, 7-day cooldown), issue forms, PR template. |
 | `tools/svgcheck.sh`, `tools/sri.sh` | `svgcheck.sh [lua...]`: 7 varied pages through `svg.lua` under each interpreter given, byte-identical across them (default `lua5.3 lua5.4`). `sri.sh`: fetches each `['https://…', 'sha384-…']` pin in `web/*.js` and checks its hash. |
 | `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff` | the security policy (private reporting; what the package promises not to do; `gh attestation verify`), the contributor guide, Contributor Covenant 2.1 (reports through the private reporting form), citation metadata (no version, so it can't go stale). |
 | `PROCESS.md`, `process/` | the user's write-up of how the repo was made: `process/claude-ai.md` (the Claude.ai chat; the files it attached are in `process/claude-ai/`, and `response-final/florilegium-repo.zip` is the original repo) and `process/claude-code.md` (the first Claude Code session, up to v1.0). Historical: never update them along with the code. |
@@ -201,7 +201,8 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
 - **Releases** are immutable once published: push an annotated tag (`git tag -a v1.3 -m v1.3 &&
   git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
   then write the notes and `gh release edit v1.3 --notes-file … --draft=false`. Assets can't be
-  added after that, so never publish a draft before CI has attached the four PDFs.
+  added after that, so never publish a draft before CI has attached the four PDFs and
+  `florilegium-pdfs.sigstore.json`.
 - **Playground supply chain**: wasmoon and MathJax load from jsDelivr only as the bytes pinned
   beside their URLs (`['url', 'sha384-…']`, one line each, so `tools/sri.sh` and playcheck can
   find them); `index.html` has a Content-Security-Policy meta naming the MathJax file. A new
