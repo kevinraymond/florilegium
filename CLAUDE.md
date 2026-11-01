@@ -59,6 +59,7 @@ tools/in-docker texlua tools/animcheck.lua 1 2 3       # last frame == page, byt
 tools/in-docker texlua tools/ident.lua build/ident-a    # 45 content streams, to diff -r before/after a change
 make preview                              # gallery/preview-*.png, spread.png, specimen-geometric.png, geometric.png, math.png
 make postscript [SEED=7]                  # the PostScript port via local gs -> build/postscript-7.pdf + gallery/preview-postscript.png
+make pscheck                              # postscript/check.sh: ~40 gs runs vs postscript/expected.txt, options, clock (~10 s); --record after an intended change
 make svg [SEED=7] RUN=tools/in-docker     # build/svg-7.svg: the drawing on page 1 of florilegium-grow.tex, without TeX
 make playground                           # web/ at http://localhost:8000/web/ (the Lua is fetched from ../)
 cd tools/playcheck && npm install && node check.mjs http://localhost:8000/web/ ../../build   # every control, 44 checks
@@ -192,12 +193,23 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   `ifill`/`istroke`/`iclip` capture the path with `pathforall` into numbered layers and
   `paintlayers` replays them. Angles are degrees (PostScript's `sin`/`cos`/`atan`); the rng
   is Park-Miller (Schrage), not mulberry32. Literal arrays in a procedure body are shared
-  between calls; build fresh ones before mutating.
+  between calls; build fresh ones before mutating. `postscript/README.md` is the port's own
+  documentation (options, the seed and clock, porting notes, Ghostscript notes, tests): keep
+  it in step with the file. Options go through `optnum`/`optbool`/`seedof` in `main` (a bare
+  `-dSeed` is `true`, `-sSeed` a string); seeds wrap at `SEEDMAX` 250000 so `seed*7919` stays
+  in 32 bits on page 2 (printers); no seed = `clockseed` from `%Calendar%`. `-dFloCheck`
+  writes a checksum of the captured layers per page to stderr; after a change that should
+  move nothing, `make pscheck` must stay green, and after an intended one, `check.sh
+  --record` and look at the pages.
 - **Ghostscript traps** (10.05): the PS transparency operators exist only with
   `-dALLOWPSTRANSPARENCY`; a raster device also needs `0 .pushpdf14devicefilter` per page;
   a PS `stroke` takes the *fill* alpha when rasterized and the stroke alpha in pdfwrite, so
   set both; a banded second page with the compositor pushed segfaults (hence `/MaxBitmap`
   in `setpagedevice`); Adobe's `ISOLatin1Encoding` has `/minus` at 45, not `/hyphen`.
+  `realtime`/`usertime` count from the interpreter's start (~20 ms when the file asks), not
+  wall time; `%Calendar%` has the date and time (local, follows `TZ`) under `-dSAFER`.
+  `pathforall` coordinates are rounded to the device grid, so the `-dFloCheck` checksum
+  depends on device and resolution (check.sh: nullpage, 72 dpi).
 
 ## How the growth works (grow.lua)
 

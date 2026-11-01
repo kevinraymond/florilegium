@@ -282,7 +282,8 @@ gs -dALLOWPSTRANSPARENCY -sDEVICE=pdfwrite -dSeed=7 -o garden.pdf postscript/flo
 make postscript             # the same -> build/postscript-7.pdf; SEED=12 for another garden
 ```
 
-`-dSeed=N` picks the garden; without it the clock picks one, so every print is new.
+`-dSeed=N` picks the garden; without it the interpreter's calendar picks one, so every print
+is new.
 `-dAge=0` to `1` sets the season, and `-dNoVisitors` leaves out the butterflies, bees, snail
 and bird. Two pages take about 2.5 seconds. Much of the Lua maps directly: PostScript's own
 transformation matrix places each primitive (translate, rotate, scale), paths and Bézier
@@ -301,6 +302,10 @@ half-width is a procedure handed to the outline builder). Four things don't map:
   where its text ends, so the copper flowers at the headings and the garden under the last
   line work as they do in LaTeX. It has no initials, animation, themes, mirrored pages,
   density or intensity, ornaments in the text, or authored composition.
+
+[`postscript/README.md`](postscript/README.md) describes every option, how a seed is chosen
+when none is given, what to know before porting the file further, and the tests that
+`postscript/check.sh` runs on it.
 
 <img src="gallery/printed.jpg" alt="two prints of florilegium.ps, two different gardens" width="500">
 
@@ -432,7 +437,9 @@ yet done.
 - The tone ramp is computed in [Oklab](https://bottosson.github.io/posts/oklab/), Björn Ottosson's
   perceptual color space; the conversion matrices in `ink.lua` are his, released into the public domain.
 - The random numbers come from [mulberry32](https://gist.github.com/tommyettinger/46a874533244883189143505d203312c),
-  Tommy Ettinger's public-domain generator.
+  Tommy Ettinger's public-domain generator. The PostScript port uses the "minimal standard"
+  generator of Park and Miller (Communications of the ACM, 1988) by Schrage's method (ACM
+  Transactions on Mathematical Software, 1979).
 - `\florilegiumornament`, its `ink` and `seed=random` keys, and the `density` option answer
   [issue #4](https://github.com/kevinraymond/florilegium/issues/4) from rubyFeedback.
 - The playground runs the Lua in the browser with [wasmoon](https://github.com/ceifa/wasmoon)
