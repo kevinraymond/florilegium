@@ -32,8 +32,8 @@ published to GitHub Pages.
 | `authored.lua` | authored composition: the hand-placed "score" (STEMS, LEAVES, BRANCHES, GHOSTS, VISITORS, SNAIL, ACCENTS, FOOT) for A4 with a 68 mm left margin. |
 | `initial.lua` | decorated initials: glyph outline via `fonts.handlers.otf.readers.loadshapes`, even-odd inside test, clearance grid, the vine over/under the letter, leaflets, flowers in the gaps, tile frame. |
 | `svg.lua` | a page as SVG without TeX (any Lua 5.3/5.4): `M.page(o)` stubs `tex` (`dimen`, `count`, `hoffset`), `node`, `luatexbase`, `texio` around `florilegium.grown`/`authored` and restores them, so `florilegium.geometry()` itself lays the page out; `M.sp` scans a length as TeX does, `html` converts a color as xcolor does (`\rdivide`, then `print_scaled`); `M.translate` turns ink's PDF operators into SVG (clip groups, opacity, multiply). Returns `svg, g, { streams, captions, stats }` (captions: the math theme's TeX, placed and mirrored as `florilegium.lua`'s `captions()` places it, from `florilegium.last_captions`; stats: what grew, from `florilegium.last_stats`, which `grow.page` returns as `{ stats = { motifs, counts, stems, cells } }`). CLI: `texlua svg.lua --help`. |
-| `web/`, `.github/workflows/pages.yml` | the playground, "a proof and its colophon": `index.html` (the proof sheet with crop marks and the measured margin, the colophon slip, styles), `app.js` (state in the URL hash; the colophon sentence built from the state, each copper word a chooser, and the garden's alt text; the knob on the measure and the foot of the text as drag/arrow-key controls; page text written from `stats`; "seen by" filters and the measurements table, Machado 2009 + Oklab, `WEAK` 0.10; snippets), `worker.js` (wasmoon 1.16.0 from jsDelivr, mounts `MODULES`, calls `svg.page`, `setTop(0)` after each call), `captions.js` (MathJax 3.2.2 `tex2svg` with `fontCache: 'none'`, set at TikZ's anchor, size in pt, rotation, color, opacity, then spliced into the SVG), `fonts/` (WOFF2 subsets, licenses, README), `hedera.svg` and `sparkle.svg` (drawn by `tools/ornament.lua`). `pages.yml` checks `svg.lua` under `lua5.4`, then publishes `web/` + `*.lua` on pushes to main that touch them. |
-| `tools/playcheck/` | `check.mjs` (puppeteer-core): operates every control of the playground and checks the garden, geometry, colophon, URL and snippets (44 checks); writes one all-settings-changed page and its CLI/LaTeX snippets for a `cmp` / PDF check. |
+| `web/`, `.github/workflows/pages.yml` | the playground, "a proof and its colophon": `index.html` (the proof sheet with crop marks and the measured margin, the colophon slip, styles), `app.js` (state in the URL hash; the colophon sentence built from the state, each copper word a chooser, and the garden's alt text; the knob on the measure and the foot of the text as drag/arrow-key controls; page text written from `stats`; "seen by" filters and the measurements table, Machado 2009 + Oklab, `WEAK` 0.10; snippets), `worker.js` (wasmoon 1.16.0 from jsDelivr, fetched with `integrity` and run from a blob: URL, mounts `MODULES`, calls `svg.page`, `setTop(0)` after each call), `captions.js` (MathJax 3.2.2 with SRI, `tex2svg` with `fontCache: 'none'`, set at TikZ's anchor, size in pt, rotation, color, opacity, then spliced into the SVG), `fonts/` (WOFF2 subsets, licenses, README), `hedera.svg` and `sparkle.svg` (drawn by `tools/ornament.lua`). `pages.yml` runs `tools/svgcheck.sh lua5.4` and `tools/sri.sh`, then publishes `web/` + `*.lua` on pushes to main that touch them. |
+| `tools/playcheck/` | `check.mjs` (puppeteer-core): operates every control of the playground and checks the garden, geometry, colophon, URL and snippets, and that the page fetches nothing from another origin but the files pinned in `web/*.js` (53 checks); writes one all-settings-changed page and its CLI/LaTeX snippets for a `cmp` / PDF check. |
 | `florilegium.tex` / `florilegium-grow.tex` | demo documents (authored / grown). Body text = `text-methods.tex` (+ `text-growth.tex` for grown) + `text-sharing.tex`; it describes the code, so **update it when the method changes**. |
 | `showcase.tex` | "A year in the margin": `[grown,sections,aging]`, an initial, `\florilegiumbloom`; each section describes the feature it shows. Two passes. |
 | `spread.tex` | "Two sides, two gardens": `twoside`, wide outer margin, `[grown,sections]`; page 3 switches to `\florilegiumtheme{geometric}` after a `\newpage`. `make preview` puts pages 2–3 side by side in `gallery/spread.png`. Its text describes the mirror and the themes; keep page 2 full (the `\newpage`) and page 3 short enough to spill. |
@@ -43,6 +43,9 @@ published to GitHub Pages.
 | `animation.tex`, `tools/animate.py` | growth animation: one page per frame (`\florilegiumframe`), parallel LuaLaTeX jobs, pdftoppm, ffmpeg → `build/grow-N.gif` + `.mp4`. `tools/animcheck.lua` checks that the last frame equals the page. |
 | `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image; `make RUN=tools/in-docker` when there's no local TeX. |
 | `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials, themes, mirror, density/intensity, ornaments or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `grow.lua` has to be made there too. |
+| `.github/` | `workflows/build.yml` (jobs `lua` = `tools/svgcheck.sh lua5.3 lua5.4` and `pdfs` = the four PDFs on every PR and push; `release` on a `v*` tag push: attestation + draft release; `gallery` on dispatch), `pages.yml`, `scorecard.yml` (OpenSSF, weekly; must stay shaped like Scorecard's example), `dependabot.yml` (one grouped PR a month, 7-day cooldown), issue forms, PR template. |
+| `tools/svgcheck.sh`, `tools/sri.sh` | `svgcheck.sh [lua...]`: 7 varied pages through `svg.lua` under each interpreter given, byte-identical across them (default `lua5.3 lua5.4`). `sri.sh`: fetches each `['https://…', 'sha384-…']` pin in `web/*.js` and checks its hash. |
+| `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff` | the security policy (private reporting; what the package promises not to do; `gh attestation verify`), the contributor guide, Contributor Covenant 2.1 (reports through the private reporting form), citation metadata (no version, so it can't go stale). |
 | `PROCESS.md`, `process/` | the user's write-up of how the repo was made: `process/claude-ai.md` (the Claude.ai chat; the files it attached are in `process/claude-ai/`, and `response-final/florilegium-repo.zip` is the original repo) and `process/claude-code.md` (the first Claude Code session, up to v1.0). Historical: never update them along with the code. |
 
 ## Build
@@ -61,7 +64,9 @@ make preview                              # gallery/preview-*.png, spread.png, s
 make postscript [SEED=7]                  # the PostScript port via local gs -> build/postscript-7.pdf + gallery/preview-postscript.png
 make svg [SEED=7] RUN=tools/in-docker     # build/svg-7.svg: the drawing on page 1 of florilegium-grow.tex, without TeX
 make playground                           # web/ at http://localhost:8000/web/ (the Lua is fetched from ../)
-cd tools/playcheck && npm install && node check.mjs http://localhost:8000/web/ ../../build   # every control, 44 checks
+cd tools/playcheck && npm install && node check.mjs http://localhost:8000/web/ ../../build   # every control, 53 checks
+tools/svgcheck.sh texlua                  # 7 pages through svg.lua; with several interpreters, byte-identical across them (CI: lua5.3 lua5.4)
+tools/sri.sh                              # the CDN files still hash to what web/*.js pins
 ```
 
 Fixed seed: `lualatex "\def\florilegiumseed{7}\input{florilegium-grow.tex}"`. Any
@@ -185,6 +190,22 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   a few figures" and its head rule starts with a circle, not an ivy leaf; a seed that no visitor
   came to says so. Each density is a whole phrase, so the sentence reads at every value. Fell for the table and slip, Latin Modern (renamed
   Florilegium Roman/Mono, as GUST asks of modified fonts) for the page; fonts are self-hosted.
+- **Repository and CI** (2026-11-01): every action is pinned to a full commit SHA with the version
+  in a comment (`uses: x/y@<sha> # v1.2.3`; the repository requires SHA pins), workflows default to
+  `contents: read` and grant more per job, checkouts use `persist-credentials: false`. Check with
+  `uvx --from actionlint-py actionlint` and `uvx zizmor --offline .github/`. Dependabot: alerts
+  only for security (the user finds per-dependency PRs annoying; security-update PRs stay off),
+  plus one grouped version-update PR a month. Main needs a PR with `lua` and `pdfs` green (admin
+  bypass); `v*` tags can't be moved or deleted.
+- **Releases** are immutable once published: push an annotated tag (`git tag -a v1.3 -m v1.3 &&
+  git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
+  then write the notes and `gh release edit v1.3 --notes-file … --draft=false`. Assets can't be
+  added after that, so never publish a draft before CI has attached the four PDFs.
+- **Playground supply chain**: wasmoon and MathJax load from jsDelivr only as the bytes pinned
+  beside their URLs (`['url', 'sha384-…']`, one line each, so `tools/sri.sh` and playcheck can
+  find them); `index.html` has a Content-Security-Policy meta naming the MathJax file. A new
+  version needs the URL, the hash (`tools/sri.sh` prints the served one) and, for MathJax, the CSP.
+  A new third-party script needs a pin and a CSP entry, or the page refuses it.
 - **PostScript port** (`postscript/florilegium.ps`, `make postscript [SEED=7]`, ~2.5 s):
   callbacks (spines, half-widths) see their caller's variables by dynamic scoping, so a
   helper that takes a procedure keeps its own names under `_` (`_p`, `_n`), and the growth
