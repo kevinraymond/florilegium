@@ -17,7 +17,9 @@ concurrency:
 
 jobs:
   # florilegium-svg.lua must draw the same page under every Lua (texlua, 5.3, 5.4 and the playground's
-  # wasmoon); a few seconds, so a pull request hears about a broken page first
+  # wasmoon); a few seconds, so a pull request hears about a broken page first. Before that,
+  # florilegium.sty and every Lua file must name the same release, and on a v* tag the tag's,
+  # so that no release is drafted from files that say another version.
   lua:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -25,11 +27,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: every file names the same release (on a tag, the tag's)
+        env:
+          TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+        run: tools/versioncheck.sh ${TAG:+"$TAG"}
       - name: install Lua 5.3 and 5.4
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lua5.3 lua5.4 > /dev/null
       - name: the same pages under both
         run: tools/svgcheck.sh lua5.3 lua5.4
 
+  # The four documents, which a release carries, and three pages that are only checked: the
+  # specimen sheets and the ornaments draw through \florilegiumdraw and \florilegiumornament,
+  # which read pgf's transform from its internal macros (florilegium.lua: sync_transform), so a
+  # pgf that renamed them would fail here and not in someone's document.
   pdfs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -37,7 +47,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: authored and grown (lualatex)
+      - name: the documents, specimen sheets and ornaments (lualatex)
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: |
@@ -45,6 +55,9 @@ jobs:
             florilegium-grow.tex
             showcase.tex
             spread.tex
+            specimen.tex
+            specimen-geometric.tex
+            ornaments.tex
           latexmk_use_lualatex: true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -56,7 +69,9 @@ jobs:
             showcase.pdf
             spread.pdf
 
-  # A release starts with a tag: git tag -a v1.3 -m v1.3 && git push origin v1.3. This job
+  # A release starts with a tag: git tag -a v1.3 -m v1.3 && git push origin v1.3, after a
+  # commit that sets the version everywhere (CLAUDE.md, Releases); the lua job stops a tag
+  # that florilegium.sty and the Lua files don't agree with. This job
   # signs a build provenance attestation for the PDFs built from that tag and opens a draft
   # release with them attached, along with the attestation itself as
   # florilegium-pdfs.sigstore.json. The notes are written by hand, and publishing the draft

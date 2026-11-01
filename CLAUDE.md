@@ -43,8 +43,8 @@ published to GitHub Pages.
 | `animation.tex`, `tools/animate.py` | growth animation: one page per frame (`\florilegiumframe`), parallel LuaLaTeX jobs, pdftoppm, ffmpeg → `build/grow-N.gif` + `.mp4`. `tools/animcheck.lua` checks that the last frame equals the page. |
 | `tools/Dockerfile`, `tools/in-docker` | TeX Live 2023 image (Ubuntu 24.04, pinned by digest for Scorecard; Dependabot leaves it alone); `make RUN=tools/in-docker` when there's no local TeX. |
 | `postscript/florilegium.ps` | the PostScript port: ink + flora + grow (no animation, initials, themes, mirror, density/intensity, ornaments or authored page) and a two-page text that describes itself, with heading marks and the spill. One file, run by Ghostscript (`make postscript`, local `gs`, not the Docker image) or a printer. Not kept in sync automatically: a change to a primitive or to `florilegium-grow.lua` has to be made there too. |
-| `.github/` | `workflows/build.yml` (jobs `lua` = `tools/svgcheck.sh lua5.3 lua5.4` and `pdfs` = the four PDFs on every PR and push; `release` on a `v*` tag push: attestation + draft release with the PDFs and the attestation as `florilegium-pdfs.sigstore.json`, which Scorecard counts as a signature; `gallery` on dispatch), `pages.yml`, `scorecard.yml` (OpenSSF, weekly; must stay shaped like Scorecard's example), `dependabot.yml` (one grouped PR a month, 7-day cooldown), issue forms, PR template. |
-| `tools/svgcheck.sh`, `tools/sri.sh` | `svgcheck.sh [lua...]`: 7 varied pages through `florilegium-svg.lua` under each interpreter given, byte-identical across them (default `lua5.3 lua5.4`). `sri.sh`: fetches each `['https://…', 'sha384-…']` pin in `web/*.js` and checks its hash. |
+| `.github/`, `.gitattributes` | `workflows/build.yml` (jobs `lua` = `tools/versioncheck.sh` (with the tag on a `v*` tag) then `tools/svgcheck.sh lua5.3 lua5.4`, and `pdfs` = the four documents plus `specimen`, `specimen-geometric` and `ornaments`, which check pgf's internal transform macros, on every PR and push, uploading the four; `release` on a `v*` tag push: attestation + draft release with the PDFs and the attestation as `florilegium-pdfs.sigstore.json`, which Scorecard counts as a signature; `gallery` on dispatch), `pages.yml`, `scorecard.yml` (OpenSSF, weekly; must stay shaped like Scorecard's example), `dependabot.yml` (one grouped PR a month, 7-day cooldown), issue forms, PR template. `.gitattributes` leaves `process/` and `gallery/` out of GitHub's "Source code" downloads (`export-ignore`; 33 MB down to 0.5 MB); `tools/` stays, since README's Docker build needs it. |
+| `tools/svgcheck.sh`, `tools/sri.sh`, `tools/versioncheck.sh` | `svgcheck.sh [lua...]`: 7 varied pages through `florilegium-svg.lua` under each interpreter given, byte-identical across them (default `lua5.3 lua5.4`). `sri.sh`: fetches each `['https://…', 'sha384-…']` pin in `web/*.js` and checks its hash. `versioncheck.sh [tag]`: the `.sty`'s v-number and every `M.version` agree, and with a tag that they are its version. |
 | `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CITATION.cff` | the security policy (private reporting; what the package promises not to do; `gh attestation verify`), the contributor guide, Contributor Covenant 2.1 (reports through the private reporting form), citation metadata (no version, so it can't go stale). |
 | `PROCESS.md`, `process/` | the user's write-up of how the repo was made: `process/claude-ai.md` (the Claude.ai chat; the files it attached are in `process/claude-ai/`, and `response-final/florilegium-repo.zip` is the original repo) and `process/claude-code.md` (the first Claude Code session, up to v1.0). Historical: never update them along with the code. |
 
@@ -68,6 +68,7 @@ make playground                           # web/ at http://localhost:8000/web/ (
 cd tools/playcheck && npm install && node check.mjs http://localhost:8000/web/ ../../build   # every control, 53 checks
 tools/svgcheck.sh texlua                  # 7 pages through florilegium-svg.lua; with several interpreters, byte-identical across them (CI: lua5.3 lua5.4)
 tools/sri.sh                              # the CDN files still hash to what web/*.js pins
+tools/versioncheck.sh [v1.3]              # the .sty and every Lua file name one release (and the tag's)
 ```
 
 Fixed seed: `lualatex "\def\florilegiumseed{7}\input{florilegium-grow.tex}"`. Any
@@ -215,9 +216,10 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   bypass); `v*` tags can't be moved or deleted.
 - **Releases** are immutable once published. First set the new version everywhere in one commit,
   the `\ProvidesPackage` date and v-number in the `.sty` and every `M.version` with
-  `sed -i -E 's/^M\.version = "[^"]*"/M.version = "1.3"/' florilegium*.lua` (a missed one makes
-  every build fail). Then push an annotated tag (`git tag -a v1.3 -m v1.3 &&
-  git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
+  `sed -i -E 's/^M\.version = "[^"]*"/M.version = "1.3"/' florilegium*.lua`, then
+  `tools/versioncheck.sh v1.3` (CI runs it on every push, and with the tag on a tag push, so a
+  missed file or a tag that doesn't match stops before any draft). Then push an annotated tag
+  (`git tag -a v1.3 -m v1.3 && git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
   then write the notes and `gh release edit v1.3 --notes-file … --draft=false`. Assets can't be
   added after that, so never publish a draft before CI has attached the four PDFs and
   `florilegium-pdfs.sigstore.json`.
