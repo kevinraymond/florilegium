@@ -81,6 +81,10 @@ postscript: postscript/florilegium.ps
 	  s = Image.new('RGB', (len(ims) * (w + 8) + 8, h + 16), (235, 235, 240)); \
 	  [s.paste(im, (8 + i * (w + 8), 8)) for i, im in enumerate(ims)]; s.save('gallery/preview-postscript.png')"
 
+# the PostScript port's tests (postscript/README.md), ~10 s:  make pscheck
+pscheck:
+	GS=$(GS) postscript/check.sh
+
 preview: florilegium.pdf florilegium-grow.pdf showcase.pdf spread.pdf specimen-geometric.pdf ornaments.pdf build/geometric.pdf build/math.pdf
 	mkdir -p gallery build
 	pdftoppm -png -r 110 -singlefile ornaments.pdf gallery/ornaments
@@ -113,4 +117,4 @@ playground:
 clean:
 	rm -rf build *.aux *.log *.out *.synctex.gz
 
-.PHONY: all gallery animation preview postscript svg playground clean
+.PHONY: all gallery animation preview postscript pscheck svg playground clean
