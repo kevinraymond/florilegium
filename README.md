@@ -266,6 +266,18 @@ equations and symbols, which TeX sets in a PDF, are set in the playground by Mat
 Computer Modern, and the command line leaves them out. The fonts are served with the page (IM FELL
 DW Pica, and Latin Modern renamed as its license asks), so nothing is fetched from a font service.
 
+## In JavaScript, for ePub
+
+`js/` is a hand port of the grown margin to plain JavaScript, made to put the garden on the
+part-title pages of an ePub: an e-reader can't load the playground's WebAssembly Lua, but it can
+run one small script. `js/dist/florilegium-garden.js` (~120 KB, no dependencies) holds the engine
+and a part-title script that measures the reader's page and regrows the garden, with the same seed,
+on a sheet of that page's shape; with scripts off, a static garden stays in its place. It covers the
+flora theme without the header, animation or initials, and writes the same SVG as `svg.lua`, byte
+for byte: its cross-checks rebuild the reference from the repo's Lua and compare 96 pages (formats,
+mirror, seasons, density, inks). Its trig, log, exp and pow are computed from `+ - * /` after fdlibm,
+in JS and in Lua alike, since browsers and glibc differ in the last bit. See [`js/README.md`](js/README.md).
+
 ## In PostScript
 
 ![the two pages of postscript/florilegium.ps, seed 7](gallery/preview-postscript.png)
@@ -441,6 +453,8 @@ yet done.
   (GUST e-foundry, GUST Font License); see `web/fonts/README.md`. Its color-blindness views use
   the model of Machado, Oliveira & Fernandes, *A Physiologically-based Model for Simulation of
   Color Vision Deficiency* (IEEE TVCG, 2009).
+- The JavaScript port's math (`js/src/detmath.js`) follows the algorithms of fdlibm
+  (Sun Microsystems, 1993).
 - The math theme's figures keep the names of the people they come from: Maurer's roses, Vogel's
   model of the sunflower, Temple Fay's butterfly curve, the Petersen graph, Koch's snowflake,
   Hilbert's curve, Lissajous figures, the gasket of Apollonius.
