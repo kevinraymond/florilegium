@@ -1,4 +1,4 @@
--- theme-math.lua -- a theme for florilegium that is not a plant: mathematics
+-- florilegium-theme-math.lua -- a theme for florilegium that is not a plant: mathematics
 -- cascading down the margin and across the bottom of the page.
 -- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 --
@@ -10,15 +10,15 @@
 --     cube truncating into the octahedron), joined by small copper arrows;
 --   - along the bottom and under the text on the last page, equations that hold
 --     (e^{iπ} + 1 = 0, V - E + F = 2, ...), set by TeX;
---   - and everywhere else, largest hole first, the figures of figures.lua, letters,
+--   - and everywhere else, largest hole first, the figures of florilegium-figures.lua, letters,
 --     numerals and symbols set by TeX at many sizes and a slight tilt, and dots.
 -- Like the garden, it fills whatever space the page leaves: the column, the band
 -- along the bottom, the space under the text. density sets how many things there
 -- are; at 0.05 the corner figure and a few symbols.
 -- Use: \usepackage[grown,theme=math]{florilegium}.
 
-local ink = require("ink")
-local figs = require("figures")
+local ink = require("florilegium-ink")
+local figs = require("florilegium-figures")
 local FIG, FAM = figs.figures, figs.families
 local M = {}
 
@@ -51,7 +51,7 @@ local function width(t)
 end
 
 -- ---------------------------------------------------------------- the page
--- Called by grow.page with the page (g) and grow.lua. Returns { captions = ... }
+-- Called by grow.page with the page (g) and florilegium-grow.lua. Returns { captions = ... }
 -- (and { rec, total } in the animation), the TeX in layout cm for florilegium.lua.
 function M.page(g, grow)
   local rng = ink.rng(g.seed * 7919 + 41)

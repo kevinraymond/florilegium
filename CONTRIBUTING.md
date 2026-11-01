@@ -35,7 +35,7 @@ explains each of them in its "Conventions and traps" section.
   `tools/playcheck` (see the comment at the top of `check.mjs`).
 - **US spelling** everywhere, in code, comments and docs.
 - **The PostScript port** is not kept in sync automatically. If you change a primitive or
-  `grow.lua`, say in the pull request whether `postscript/florilegium.ps` needs the same
+  `florilegium-grow.lua`, say in the pull request whether `postscript/florilegium.ps` needs the same
   change.
 - **Credit what you borrow.** A published algorithm or constant gets a credit where it is
   used and a line under the README's Credits.

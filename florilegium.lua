@@ -2,8 +2,8 @@
 -- colors, seeds, the TikZ transform, and the dispatch of primitives.
 -- Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 
-local ink = require("ink")
-local flora = require("flora")
+local ink = require("florilegium-ink")
+local flora = require("florilegium-flora")
 local M = { ink = ink, flora = flora }
 
 local SP_CM = 2.54 / (72.27 * 65536)          -- cm per scaled point
@@ -63,7 +63,7 @@ end
 -- \florilegiumdraw{name}{s, opts}: one primitive at the origin of the current TikZ
 -- scope; the names of the current theme's primitives work too
 local scaled = { leaf = true, leaflet = true, petal = true }
-local function primitives() return require("grow").theme(M.theme) end
+local function primitives() return require("florilegium-grow").theme(M.theme) end
 function M.draw(name, s, o)
   local flora = primitives()
   local fn = flora[name]
@@ -214,7 +214,7 @@ M.initial_font = "lmroman10-bold.otf"
 function M.initial(letter, side, hang, cap)
   local bp = 72 / 72.27 / 65536
   ink.set_transform({ ink.CM, 0, 0, ink.CM, -hang * bp, (cap - side) * bp })
-  local ok, err = require("initial").draw(page_rng.fork(), side * SP_CM, letter, { font = M.initial_font })
+  local ok, err = require("florilegium-initial").draw(page_rng.fork(), side * SP_CM, letter, { font = M.initial_font })
   if not ok then tex.error("florilegium: " .. tostring(err)) end
   ink.flush()
 end
@@ -272,15 +272,15 @@ local function captions(g, list, shown)
   tex.sprint(table.concat(out))
 end
 
--- the captions of the last page drawn, in layout cm, for svg.lua, which has no TeX to set them,
--- and what grew on it (grow.lua's counts)
+-- the captions of the last page drawn, in layout cm, for florilegium-svg.lua, which has no TeX to set them,
+-- and what grew on it (florilegium-grow.lua's counts)
 M.last_captions, M.last_stats = nil, nil
 
 local function grown_frame(g)
   local key = string.format("%d %d %.3f %s %d %s %s %s", g.seed, g.spill, g.spilly, tostring(g.age), #g.marks, tostring(g.theme), tostring(g.mirror), tostring(g.density))
   if not recorded[key] then
     g.anim = true
-    recorded = { [key] = require("grow").page(g) }      -- keep only the latest garden
+    recorded = { [key] = require("florilegium-grow").page(g) }      -- keep only the latest garden
   end
   local r = recorded[key]
   -- the last frame is the page: every event finished (r.total itself may round below)
@@ -294,8 +294,8 @@ local function grown_frame(g)
   captions(g, r.captions, function(cap) return t >= cap.event.t0 + cap.event.dur end)
 end
 
--- the theme (option theme=...): nil is flora; otherwise theme-<name>.lua replaces
--- some of the primitives (grow.lua). In the document, \florilegiumtheme leaves a
+-- the theme (option theme=...): nil is flora; otherwise florilegium-theme-<name>.lua replaces
+-- some of the primitives (florilegium-grow.lua). In the document, \florilegiumtheme leaves a
 -- mark, so the theme changes from the page that the mark is on.
 M.theme = nil
 local function themes(marks)
@@ -323,7 +323,7 @@ function M.grown(seed, spill, spilly, box)
   local old = ink.set_pale(pale())
   if frame then grown_frame(g)
   else
-    local r = require("grow").page(g)
+    local r = require("florilegium-grow").page(g)
     M.last_captions, M.last_stats = r and r.captions, r and r.stats
     captions(g, r and r.captions)
   end
@@ -338,7 +338,7 @@ function M.authored(seed, box)
   local g = M.geometry()
   g.seed, g.visitors, g.theme = seed, M.visitors, M.theme
   local old = ink.set_pale(pale())
-  local r = require("authored").page(g)
+  local r = require("florilegium-authored").page(g)
   M.last_captions, M.last_stats = r and r.captions, r and r.stats
   captions(g, r and r.captions)
   M.head(g)

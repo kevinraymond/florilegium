@@ -1,6 +1,6 @@
 // app.js -- the proof and its colophon. Every copper word in the colophon is a control,
 // and the sentence is rebuilt from the state each time, so it always says what the page
-// is (it is the garden's alt text too). The garden comes from worker.js (svg.lua under
+// is (it is the garden's alt text too). The garden comes from worker.js (florilegium-svg.lua under
 // wasmoon), the math theme's text from captions.js (MathJax).
 // Copyright (c) 2026 Kevin Raymond. MIT License: see LICENSE or florilegium.sty.
 
@@ -75,7 +75,7 @@ function writeHash() {
   history.replaceState(null, '', '#' + p.toString())
 }
 
-// what svg.lua gets
+// what florilegium-svg.lua gets
 function options(seed = state.seed) {
   const o = {
     seed, paper: state.paper, density: state.density, intensity: state.strength, ink: state.ink, accent: state.accent,
@@ -503,7 +503,7 @@ function snippet() {
     return [`${file}:${mb} a whole ${P.name} page with a transparent background, the ${isMath() ? 'figures' : 'garden'} in its margin`,
       `For Typst, a web page or your notes. It ${term('head', s.head ? 'keeps' : 'leaves out')} the head rule and ${HEAD[s.style]}.`, true]
   }
-  const a = ['texlua svg.lua --seed ' + s.seed]
+  const a = ['texlua florilegium-svg.lua --seed ' + s.seed]
   if (s.paper !== 'a4') a.push('--paper ' + s.paper)
   if (left !== 68 || right !== INNER) a.push(`--left ${left}mm --right ${right}mm`)
   if (s.season !== 'summer' && !isMath()) a.push('--season ' + s.season)

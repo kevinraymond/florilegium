@@ -6,5 +6,5 @@
 - [ ] I looked at the output (a page, a specimen sheet or the playground), and it looks right.
 - [ ] Pages that should not change are byte-identical before and after (`tools/ident.lua`), or the change in the drawing is intended.
 - [ ] If `web/` changed, `tools/playcheck` passes.
-- [ ] If a primitive or `grow.lua` changed, the PostScript port has the same change, or this PR says it doesn't.
+- [ ] If a primitive or `florilegium-grow.lua` changed, the PostScript port has the same change, or this PR says it doesn't.
 - [ ] US spelling throughout.

@@ -1,5 +1,5 @@
 name: Something is wrong
-description: The package, the PDFs, svg.lua or the playground does something it shouldn't.
+description: The package, the PDFs, florilegium-svg.lua or the playground does something it shouldn't.
 labels: [bug]
 body:
   - type: textarea
@@ -13,7 +13,7 @@ body:
     id: document
     attributes:
       label: The smallest document that shows it
-      description: Or the playground's address (it holds every setting), or the svg.lua command line.
+      description: Or the playground's address (it holds every setting), or the florilegium-svg.lua command line.
       render: latex
   - type: input
     id: tex
