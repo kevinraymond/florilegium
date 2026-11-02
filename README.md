@@ -133,7 +133,7 @@ OKLCH, so the light end never turns gray.*
 The growth loop never knew what it was drawing. It reads a table of motifs (the size of
 the disc each one takes, a weight, a function that draws it) and calls every primitive by
 name. A theme is one Lua file, `florilegium-theme-<name>.lua`, that replaces some of those primitives
-and may add rows to the table, or brings a composition of its own.
+and may add rows to the table, or bring a composition of its own.
 
 **`theme=geometric`** is the same plant cut from flat shapes (`florilegium-theme-geometric.lua`). It
 grows exactly as the flowers do, and only the drawing changes: the stems run straight
