@@ -219,7 +219,7 @@ is ~70 KB of path operators, a page ~3 MB uncompressed, ~0.7 MB in the PDF.
   `sed -i -E 's/^M\.version = "[^"]*"/M.version = "1.3"/' florilegium*.lua`, then
   `tools/versioncheck.sh v1.3` (CI runs it on every push, and with the tag on a tag push, so a
   missed file or a tag that doesn't match stops before any draft). Then push an annotated tag
-  (`git tag -a v1.3 -m v1.3 && git push origin v1.3`), CI builds the PDFs, attests them and opens a draft release with them;
+  (`git tag -a v1.3 -m v1.3 && git push origin v1.3`); CI then builds the PDFs, attests them and opens a draft release with them;
   then write the notes and `gh release edit v1.3 --notes-file … --draft=false`. Assets can't be
   added after that, so never publish a draft before CI has attached the four PDFs and
   `florilegium-pdfs.sigstore.json`.
