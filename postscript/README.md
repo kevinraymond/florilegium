@@ -143,7 +143,7 @@ things:
 3. Without a seed, the seed comes from the second each run started in, and without a calendar
    (or with a stopped one) the file falls back to `realtime`.
 4. The largest seeds keep every page within 32-bit integers.
-5. The PDF has two pages, both pages render at 300 dpi with transparency, and one seed
+5. The PDF has two pages; both pages render at 300 dpi with transparency, and one seed
    rendered twice gives the same pixels.
 
 ```sh
