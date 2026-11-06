@@ -1,0 +1,61 @@
+% onoff.lvt -- the margin off and on: \florilegiumoff in the preamble, \florilegiumon in the
+% text, \florilegiumhide in the middle of a line, in a footnote, in floats (a page of them, one
+% at the top, one at the foot), in a minipage and with a list of the PDF's pages; a theme that
+% changes on a page without a margin; the last of two switches on one page decides.
+\input{regression-test}
+\documentclass[11pt,a4paper]{article}
+\renewcommand\rmdefault{cmr}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,left=68mm,right=22mm,top=32mm,bottom=30mm]{geometry}
+\def\florilegiumseed{3}
+\usepackage[grown,sections]{florilegium}
+\directlua{require("fingerprint")}
+\newcount\paracount
+\newcommand\paras[1]{\paracount=0
+  \loop The margin can be turned off for a page and on again, and the text does not move.\par
+  \advance\paracount 1 \ifnum\paracount<#1 \repeat}
+\florilegiumoff
+\begin{document}
+\START
+\section{Page 1 has no margin, from the preamble}
+\paras{4}
+\newpage
+\florilegiumon
+\section{Page 2 has its margin}
+\paras{6}
+\newpage
+\paras{2}% page 3: hidden by a mark in the middle of a line
+A paragraph with the command in the \florilegiumhide middle of a line, long enough to be broken
+into several lines, so that a stray space or a moved break would show.\par
+\paras{2}
+\florilegiumhide[4, x, 11 - 12 , 15-]% pages 4, 11 and 12 by number; two items that are no pages
+\newpage
+\paras{4}
+\begin{figure}[p]\florilegiumhide\centering\rule{5cm}{12cm}\caption{A page of floats}\end{figure}
+\clearpage%                         page 5: the float's page, hidden by the mark inside it
+\section{Page 6 has its margin}
+\paras{4}\florilegiumoff\florilegiumon% the last one decides
+\newpage
+\paras{2}% page 7: hidden by a mark in a footnote
+A footnote\footnote{\florilegiumhide In the footnote.} carries it here.\par
+\newpage
+\paras{2}% page 8: hidden by a mark in a float at the top
+\begin{figure}[t]\florilegiumhide\centering\rule{4cm}{2cm}\caption{A float at the top}\end{figure}
+\paras{2}
+\newpage
+\paras{2}% page 9: hidden by a mark in a float at the foot
+\begin{table}[b]\centering\florilegiumhide\begin{tabular}{ll}a&b\end{tabular}\caption{A table at the foot}\end{table}
+\paras{2}
+\newpage
+\paras{2}% page 10: hidden by a mark in a minipage
+\noindent\begin{minipage}{\linewidth}Inside a minipage.\florilegiumhide\end{minipage}\par
+\newpage
+Page 11, hidden by number.\newpage Page 12, hidden by number.\newpage
+\florilegiumoff\paras{2}\florilegiumtheme{geometric}% page 13: none, and the theme changes
+\newpage
+\florilegiumon
+\section{Page 14 has its margin, in the theme}
+\paras{2}
+\florilegiumtextend
+\clearpage
+\END

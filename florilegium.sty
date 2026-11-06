@@ -35,6 +35,11 @@
 %%                                      0.5 summer, 1 autumn
 %%   \florilegiumtheme{name}           the theme from the page this stands on (flora:
 %%                                      none); in the preamble, for the whole document
+%%   \florilegiumoff, \florilegiumon   no margin from the page this stands on, and the
+%%                                      margin again; in the preamble, from the first page
+%%   \florilegiumhide                  no margin on the page this stands on (in a float:
+%%                                      the page the float lands on)
+%%   \florilegiumhide[1,3,5-8]         no margin on those pages of the PDF, counted from 1
 %%   \florilegiuminitial[lines]{L}     at the start of a paragraph: the letter L as a
 %%                                      decorated initial, a tile `lines' lines tall
 %%                                      (default 4), the text wrapped around it
@@ -138,9 +143,28 @@
   \ifx\@nodocument\relax\directlua{florilegium.mark("theme", "\luaescapestring{#1}")}%
   \else\directlua{florilegium.theme = "\luaescapestring{#1}"}\fi}
 \ifx\florilegium@theme\@empty\else\expandafter\florilegiumtheme\expandafter{\florilegium@theme}\fi
+%% the margin off and on: in the preamble from the first page; in the text a mark, as the
+%% theme's, so that the margin stops or starts with the page that the mark is on. The option
+%% nomargin installs no margin at all, so there is nothing to switch
+\def\florilegium@switch#1{\ifflorilegium@margin
+  \ifx\@nodocument\relax\directlua{florilegium.mark("margin", "#1")}%
+  \else\directlua{florilegium.margin = "#1" == "on"}\fi\fi}
+\newcommand\florilegiumoff{\florilegium@switch{off}}
+\newcommand\florilegiumon{\florilegium@switch{on}%
+  \ifflorilegium@margin\else\PackageWarning{florilegium}{%
+    \string\florilegiumon\space has no margin to turn on, since the option nomargin is set}\fi}
+%% one page without its margin: a mark on the page itself (in the preamble, the first page),
+%% or with an argument the pages of the PDF by their number, counted from 1 whatever the
+%% page numbers say, as 1,3,5-8
+\newcommand\florilegiumhide[1][]{\ifflorilegium@margin
+  \if\relax\detokenize{#1}\relax
+    \ifx\@nodocument\relax\directlua{florilegium.mark("hide", "")}%
+    \else\directlua{florilegium.hide("1")}\fi
+  \else\directlua{florilegium.hide("\luaescapestring{#1}")}\fi\fi}
 
-%% pass the current colors to Lua, and whether the pages are two-sided
-\def\florilegium@twoside{\directlua{florilegium.twoside = \if@twoside true\else false\fi}}
+%% pass the current colors to Lua, whether the pages are two-sided, and the sheet's number
+\def\florilegium@twoside{\directlua{florilegium.sheet = \number\ReadonlyShipoutCounter;
+  florilegium.twoside = \if@twoside true\else false\fi}}
 \def\florilegium@colors{%
   \extractcolorspecs{ink}{\flo@colm}{\flo@cols}\convertcolorspec{\flo@colm}{\flo@cols}{rgb}\flo@ink
   \extractcolorspecs{accent}{\flo@colm}{\flo@cols}\convertcolorspec{\flo@colm}{\flo@cols}{rgb}\flo@accrgb

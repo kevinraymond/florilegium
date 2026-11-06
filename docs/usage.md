@@ -39,7 +39,7 @@ hand-designed shapes.
 | `theme=geometric`, `theme=math` | another drawing, or another composition (see [themes](themes.md)) |
 | `density=0.4` | less in the margin, down to a single vine at `0.05` (grown only) |
 | `intensity=0.6` | a paler margin, from `1` as painted to `0.3` faint |
-| `nomargin` | no garden in the margin; ornaments, initials and `\florilegiumdraw` still work |
+| `nomargin` | no garden in the margin; ornaments, initials and `\florilegiumdraw` still work (for single pages, see [Pages without a margin](#pages-without-a-margin)) |
 
 ## Commands
 
@@ -51,6 +51,8 @@ hand-designed shapes.
 | `\florilegiumbloom`, `\florilegiumbloom[lily]` | a flower in the margin beside this line, or a bud, a leaf, a tendril, a role or a body plan on the page (grown only) |
 | `\florilegiumage{0.8}` | the age of the pages from here on, from 0 (spring) through 0.5 (summer) to 1 (autumn) (grown only) |
 | `\florilegiumtheme{geometric}` | another theme from the page this stands on (`flora` for none) |
+| `\florilegiumoff`, `\florilegiumon` | no margin from the page this stands on, and the margin again |
+| `\florilegiumhide`, `\florilegiumhide[1,3,5-8]` | no margin on the page this stands on, or on those pages of the PDF |
 | `\florilegiumornament{leaf}` | one primitive in the line, the size of a letter |
 | `\florilegiumdraw{flower}{1.2}` | one primitive at the origin of the current TikZ scope |
 | `\florilegiumframe[explain]{k}{n}` | frame k of n of the garden's growth, for an animation (`animation.tex`) |
@@ -122,6 +124,24 @@ it is a single vine with its flower, a couple of leaves and one or two sprays. W
 theme it means fewer things. `intensity=0.5` paints the whole margin paler, the way the ghost
 flowers behind the garden are painted; it changes only the color, not the detail. At `1` and
 `1` every page is the page it would have been without them.
+
+## Pages without a margin
+
+A title page or a page of figures may want no garden. `\florilegiumoff` stops the margin with the page it stands on, and `\florilegiumon` starts it again. In the preamble they apply from the first page.
+
+```latex
+\begin{document}
+\florilegiumoff
+\begin{titlepage} ... \end{titlepage}
+\florilegiumon                 % after the page break, so the title page stays bare
+\section{Introduction}
+```
+
+Both take effect on the page where they end up, as `\florilegiumtheme` does, so `\florilegiumon` goes after the `\newpage` or `\clearpage` that ends the last bare page. When a page holds several of them, the last one decides.
+
+`\florilegiumhide` leaves out only the page it stands on. Inside a `figure` or a `table` that is the page the float lands on, wherever LaTeX puts it. `\florilegiumhide[1,3,5-8]` leaves out pages by number, anywhere before they are reached. The numbers count the pages of the PDF from 1, as a PDF viewer does, whatever the document prints at the foot, so roman front matter or a title page that starts the numbering again cannot be mistaken for another page.
+
+A page without its margin changes nothing else. Its text is set the same, its initials and ornaments are still drawn, every other page keeps the garden it would have had, and with `aging` it still counts as a page of the year. The option `nomargin` leaves the margin out of the whole document, and `\florilegiumon` cannot bring it back.
 
 ## Both sides of the page
 

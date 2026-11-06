@@ -416,13 +416,41 @@ end
 -- some of the primitives (florilegium-grow.lua). In the document, \florilegiumtheme leaves a
 -- mark, so the theme changes from the page that the mark is on.
 M.theme = nil
-local function themes(list)
-  if M.theme == "" then M.theme = nil end   -- \florilegiumtheme{} in the preamble, as in the text
-  local rest = {}
-  for _, m in ipairs(list) do
-    if m.kind == "theme" then M.theme = m.arg ~= "" and m.arg or nil else rest[#rest + 1] = m end
+-- the margin off and on. In the preamble \florilegiumoff and \florilegiumon set M.margin; in
+-- the document they leave a mark, and the margin stops or starts with the page that the mark
+-- is on (the last one on a page decides for it). \florilegiumhide leaves a mark that hides
+-- its own page and no other; \florilegiumhide[1,3,5-8] names sheets, the PDF's pages counted
+-- from 1 (M.sheet, which the shipout hook sets; nil without TeX), kept as ranges.
+M.margin, M.sheet = true, nil
+local hidden = {}
+function M.hide(list)
+  for item in (list .. ","):gmatch("%s*([^,]-)%s*,") do
+    local a, b = item:match("^(%d+)%s*%-%s*(%d+)$")
+    if not a then a = item:match("^(%d+)$") end
+    if a then hidden[#hidden + 1] = { tonumber(a), tonumber(b or a) }
+    elseif item ~= "" then
+      warn(string.format("\\florilegiumhide[%s] left out %s, which is not a page of the PDF (as 3) or a range of them (as 5-8)", list, item))
+    end
   end
-  return rest
+end
+-- the marks of a page that change a setting, taken out of the list: the theme, and whether
+-- the page has a margin at all (second result: true for a page without one). A page without
+-- a margin still has its marks read, so a theme that changes on it changes
+local function settings(list)
+  if M.theme == "" then M.theme = nil end   -- \florilegiumtheme{} in the preamble, as in the text
+  local rest, hide = {}, false
+  for _, m in ipairs(list) do
+    if m.kind == "theme" then M.theme = m.arg ~= "" and m.arg or nil
+    elseif m.kind == "margin" then M.margin = m.arg == "on"
+    elseif m.kind == "hide" then hide = true
+    else rest[#rest + 1] = m end
+  end
+  if M.sheet then
+    for _, r in ipairs(hidden) do
+      if M.sheet >= r[1] and M.sheet <= r[2] then hide = true break end
+    end
+  end
+  return rest, hide or not M.margin
 end
 
 -- how much is in the margin (options density and intensity, 0..1): density thins
@@ -448,7 +476,9 @@ M.visitors = true
 M.bleed = 0
 function M.grown(seed, spill, spilly, box)
   local g = M.geometry()
-  g.marks = themes(page_marks(box))
+  local hide
+  g.marks, hide = settings(page_marks(box))
+  if hide then M.last_captions, M.last_stats = nil, nil return end
   g.seed, g.spill, g.spilly, g.visitors, g.age, g.theme = seed, spill, spilly, M.visitors, M.age, usable_theme()
   g.docseed = M.docseed
   if M.bleed > 0 then g.bleed = M.bleed end
@@ -469,7 +499,8 @@ M.grown = guarded(M.grown)
 -- the authored composition for this page (intensity applies; density does not,
 -- everything here is placed by hand)
 function M.authored(seed, box)
-  themes(page_marks(box))
+  local _, hide = settings(page_marks(box))
+  if hide then M.last_captions, M.last_stats = nil, nil return end
   local g = M.geometry()
   g.seed, g.visitors, g.theme = seed, M.visitors, usable_theme()
   if M.bleed > 0 then g.bleed = M.bleed end

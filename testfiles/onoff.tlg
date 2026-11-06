@@ -1,0 +1,44 @@
+This is a generated file for the l3build validation system.
+Don't change this file in any respect.
+florilegium test: page 1, 0 drawings [1
+]
+florilegium: grew 4604 cells, 72 motifs, 578 stem points, 5052 KB; visitors: snail, caterpillar
+florilegium: species eudicot 325044308, columbine 1511394489, lily 1583415831, daisy 2000561335
+florilegium test: page 2, 2 drawings
+  1. md5 0c201899886a7e9949e330a86b5fc2ee, 5173630 bytes
+  2. md5 412f0d1c41f7b70ee4068c08af4ca3c1, 3287 bytes
+  grew: bee 0, bells 0, bloom:1 3, blossoms 0, bud 0, budding 0, budding:1 15, budding:2 2, budding:3 4, budding:4 0, butterfly 0, cyme 0, flower 0, g:bloom 3, g:budding 21, g:leaf 8, g:spray 28, g:tendril 2, g:unit 9, g:visitor 0, leaf 0, leaf:1 7, leaf:2 1, leaf:4 0, lily 0, seedhead 0, snail 1, spray:1 18, spray:2 4, spray:3 4, spray:4 2, sprig 0, tendril 0, tendril:2 2, umbel 0, unit:1 5, unit:2 2, unit:3 1, unit:4 1, visitor:1 0, visitor:2 0, visitor:3 0, visitor:4 0, visitor:stem 0 [2]
+Module florilegium Warning: \florilegiumhide[4, x, 11 - 12 , 15-] left out x, which is not a page of the PDF (as 3) or a range of them (as 5-8) on input line ...
+Module florilegium Warning: \florilegiumhide[4, x, 11 - 12 , 15-] left out 15-, which is not a page of the PDF (as 3) or a range of them (as 5-8) on input line ...
+florilegium test: page 3, 0 drawings [3]
+florilegium test: page 4, 0 drawings [4]
+florilegium test: page 5, 0 drawings [5]
+florilegium: grew 4614 cells, 75 motifs, 578 stem points, 4604 KB; visitors: moth, butterfly, hoverfly
+florilegium: species columbine 1511394489, daisy 2000561335, lily 1583415831, borage 1548631455
+florilegium test: page 6, 2 drawings
+  1. md5 2e47c0b382ebc8d6ea2775a82c3d5811, 4714624 bytes
+  2. md5 412f0d1c41f7b70ee4068c08af4ca3c1, 3287 bytes
+  grew: bee 0, bells 0, blossoms 0, bud 0, budding 0, budding:1 15, budding:2 1, budding:3 4, budding:4 0, butterfly 0, cyme 0, fern 3, flower 0, g:bloom 0, g:budding 20, g:leaf 13, g:spray 21, g:tendril 6, g:unit 9, g:visitor 3, leaf 0, leaf:1 10, leaf:2 3, leaf:4 0, lily 0, seedhead 0, spray:1 12, spray:2 6, spray:3 3, spray:4 0, sprig 0, tendril 0, tendril:1 6, umbel 0, unit:1 6, unit:2 1, unit:3 2, unit:4 0, visitor:1 1, visitor:2 1, visitor:3 1, visitor:4 0 [6
+]
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <10.95> on input line ....
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line ....
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line ....
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <9> on input line ....
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line ....
+florilegium test: page 7, 0 drawings [7]
+florilegium test: page 8, 0 drawings [8]
+florilegium test: page 9, 0 drawings [9]
+florilegium test: page 10, 0 drawings [10]
+florilegium test: page 11, 0 drawings [11]
+florilegium test: page 12, 0 drawings [12]
+florilegium test: page 13, 0 drawings [13]
+florilegium: grew 10521 cells, 162 motifs, 1146 stem points, 552 KB; visitors: 2 butterfly
+florilegium test: page 14, 2 drawings
+  1. md5 0e048d33d777095ee31f574d97fc45b4, 565412 bytes
+  2. md5 4a8d13591a504c00dfa7b03bc28aa2bd, 535 bytes
+  grew: bee 0, bells 2, blossoms 18, bud 22, budding 0, butterfly 2, crystal 5, cyme 29, flower 7, leaf 41, lily 5, seedhead 0, sprig 14, tendril 10, umbel 7 [14]
