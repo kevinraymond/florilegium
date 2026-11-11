@@ -19,7 +19,7 @@
 -- of a point, so only a choice that went the other way shows), and while its ink is within 3.5%
 -- as dark in both (a fill drawn lighter or not at all: each of its pixels is still near a gray
 -- of the other drawing, but the whole is lighter).
---   texlua tools/tikzcheck.lua draw [quick|full|fern|visitors|tracery|shells] [compare] (compare: the last
+--   texlua tools/tikzcheck.lua draw [quick|full|plants|fern|visitors|tracery|shells] [compare] (compare: the last
 --   builds' PDFs again, without building them; quick: fronds of every division,
 --   outline and edge, fern crowns in three seasons, then one flower, one leaf and one
 --   inflorescence of every body plan, one inflorescence of every kind and of every view
@@ -31,8 +31,9 @@
 --   ladybirds of every ground, pose, tint and pattern, caterpillars, snails and birds of
 --   every pose, ground, shell and bill; full:
 --   also two strips of three plants, as specimen-tikz.tex draws them, several minutes in
---   pure TikZ; fern: the ferns alone; visitors: the visitors alone; tracery: the windows alone;
---   shells: the shells alone, every kind, view, sculpture and pattern, and small ones)
+--   pure TikZ; one family alone, as CI's tikz jobs run them (tools/tikzcheck-ci.sh): plants,
+--   quick's flowers, leaves, inflorescences and plants; fern, the ferns; visitors; tracery,
+--   the windows; shells, every kind, view, sculpture and pattern, and small ones)
 package.path = "./?.lua;" .. package.path
 local fmt = string.format
 os.execute("mkdir -p build")
@@ -48,16 +49,21 @@ local function streams(path)
 end
 if arg[1] == "draw" then
   local reuse = arg[3] == "compare"           -- draw quick compare: the last builds' PDFs again
-  local full, fernonly, visonly, traconly = arg[2] == "full", arg[2] == "fern", arg[2] == "visitors", arg[2] == "tracery"
-  local shellonly = arg[2] == "shells"
-  if traconly or shellonly then fernonly, visonly = true, true end
+  local mode = arg[2] or "quick"
+  local FAMILIES = { plants = true, fern = true, visitors = true, tracery = true, shells = true }
+  if mode ~= "quick" and mode ~= "full" and not FAMILIES[mode] then
+    error("tikzcheck: draw " .. mode .. "? quick, full, plants, fern, visitors, tracery or shells")
+  end
+  local full = mode == "full"
+  -- quick and full draw every family, in this order, so their shards are as they were
+  local function has(family) return mode == "quick" or full or mode == family end
   local species = require("florilegium-species")
   local pics = {}
   local function pic(spec) pics[#pics + 1] = spec end
   -- ferns: fronds of every division, outline and edge, scaly and bare; crowns in spring,
   -- summer and autumn (fiddleheads, fronds unrolling, some turned over to show each kind of
   -- sori, copper in autumn), a dimorphic fern's fertile frond, a fern as a plant pic
-  if not visonly then
+  if has("fern") then
   local function fern(want)
     local seed = 1
     while not want(species.sample(seed, "fern")) do seed = seed + 1 end
@@ -84,7 +90,7 @@ if arg[1] == "draw" then
   end
   pic(fmt("florilegium plant={seed=%d, role=fern, size=5cm, season=0.6}", fern(function(f) return f.hairy == 1 end)))
   end
-  if not fernonly and not visonly then
+  if has("plants") then
   for i, p in ipairs(species.PLANS) do
     if not p.apart then pic(fmt("florilegium flower={seed=%d, role=%s, size=2.6cm}", 10 + 7 * i, p.name)) end
     pic(fmt("florilegium leaf={seed=%d, role=%s, size=3.4cm}", 11 + 7 * i, p.name))
@@ -234,7 +240,7 @@ if arg[1] == "draw" then
   pic("florilegium v13 flower={seed=7, size=1.9cm}")
   pic("florilegium v13 leaf={seed=7, size=4cm}")
   end
-  if not fernonly and not visonly or traconly then
+  if has("tracery") then
   -- tracery: a window of every period and of every way a head branches, each kind of
   -- figure, transoms, spandrels of each kind, a headpiece screen with foils and one with
   -- foliage, an arcade, a rose of two rings, a foil pointed and round, and small ones
@@ -265,7 +271,7 @@ if arg[1] == "draw" then
   pic("florilegium tracery={seed=2, role=window, size=0.9cm, traits={period=geometric, lights=2, figure=foiled, foils=4}}")
   pic("florilegium tracery={seed=2, role=headpiece, size=4cm}")
   end
-  if not fernonly and not visonly or shellonly then
+  if has("shells") then
   -- shells (#5339): ammonites of every sculpture, keel and preservation, with each kind of
   -- suture line, broken and worn to the nacre, a nautilus; each bivalve outside and inside,
   -- with each pattern, ears, ridges and layers; whelks of either hand with canal, lip,
@@ -302,7 +308,7 @@ if arg[1] == "draw" then
     pic(fmt("florilegium shell={seed=3, role=%s, size=%s, traits=%s}", role, size, traits))
   end
   end
-  if not fernonly then
+  if has("visitors") then
   -- visitors: a butterfly or moth with each wing tip, edge and tail, each pattern system
   -- (central band or spots, base, discal spot, border band, spots, eyespots of one to three
   -- rings, arcs, lunules, no veins), each ground and pose, each kind of feeler, a hawkmoth;
@@ -404,7 +410,7 @@ if arg[1] == "draw" then
   pic("florilegium visitor={seed=8, role=snail, size=0.7cm}")
   pic("florilegium visitor={seed=11, role=hummingbird, size=0.25cm}")
   end
-  if not fernonly and not visonly then
+  if has("plants") then
   for _, s in ipairs({ "0.15", "0.75", "1.3" }) do
     pic(fmt("florilegium plant={seed=17, role=rose, size=8.5cm, width=5.2cm, season=%s}", s))
   end

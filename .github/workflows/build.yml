@@ -43,7 +43,7 @@ jobs:
 
   # The four documents, which a release carries, and pages that are only checked: the
   # species sheet (the Lua engine under LuaLaTeX, by the library's default; pure TikZ is the
-  # tikz job's), and the specimen sheets and the ornaments, which draw through
+  # tikz jobs'), and the specimen sheets and the ornaments, which draw through
   # \florilegiumdraw and \florilegiumornament, which read pgf's transform from its internal
   # macros (florilegium.lua: sync_transform), so a pgf that renamed them would fail here and
   # not in someone's document.
@@ -70,7 +70,7 @@ jobs:
           latexmk_use_lualatex: true
           # Lua does pgfmath's arithmetic exactly where the species need it (pgfmathcheck), and
           # the TikZ library and the Lua sample the same species, visitors, windows of
-          # tracery and shells (tikzcheck); the tikz job below compares what the two engines draw
+          # tracery and shells (tikzcheck); the tikz jobs below compare what the two engines draw
           post_compile: >-
             texlua tools/pgfmathcheck.lua 20000 &&
             texlua tools/tikzcheck.lua 1 1000 &&
@@ -87,8 +87,8 @@ jobs:
             showcase.pdf
             spread.pdf
 
-  # Whether a pull request changes anything but Markdown. The tikz job reads no .md file, so a
-  # pull request that changes only Markdown skips it. pdfs and zip still run, since the manual
+  # Whether a pull request changes anything but Markdown. The tikz jobs read no .md file, so a
+  # pull request that changes only Markdown skips them. pdfs and zip still run, since the manual
   # and the zip take the README and docs/. A skipped job counts as passed, so this never holds
   # up a merge.
   changes:
@@ -102,8 +102,8 @@ jobs:
           persist-credentials: false
           fetch-depth: 2
       # A pull request checks out its merge commit, whose first parent is the base branch, so
-      # the diff between the two is what the pull request changes. A push to main or a manual
-      # run always runs tikz, and a tag never does (the tikz job's own condition).
+      # the diff between the two is what the pull request changes. A manual run always runs
+      # tikz, and a push to main or a tag never does (the tikz jobs' own condition).
       - name: whether anything but Markdown changed
         id: files
         env:
@@ -119,35 +119,42 @@ jobs:
           fi
           echo "code=$code" | tee -a "$GITHUB_OUTPUT"
 
-  # The species in pure TikZ, which promise pdfLaTeX too, on every core of the runner
-  # (tools/tikzcheck-ci.sh, which latex-action runs as its compiler, in its TeX Live). Every
-  # page of the specimen sheet is typeset under pdflatex in a run of its own, all at once, with
-  # the main memory a strip of plants needs (specimen-tikz.tex says why); a page fails on any
-  # error, and on the library's warning that it could not patch pgf's number scanner. Then
-  # tikzcheck draw quick builds the same pics with engine=tikz and engine=lua, each in as many
-  # runs as there are cores, and compares their renders (pdftoppm, which the image lacks:
-  # poppler-utils): a flower, a leaf and an inflorescence of every body plan, every kind of
-  # cluster, leaf, fern and visitor, a plant in three seasons. Pure TikZ is slow: in one run it
-  # took 70 minutes here. The pages, the pics' shards and the comparison (of the inked part of
-  # each page only) now share the runner's cores, about 12 minutes on four threads of a fast
-  # desktop, beside pdfs. A pull request that changes only Markdown skips it, and so does a
-  # tag: the pull request and main ran it on the same tree, and the release doesn't wait for it.
+  # The species in pure TikZ, which promise pdfLaTeX too, one family of drawings a job, on
+  # every core of its runner (tools/tikzcheck-ci.sh, which latex-action runs as its compiler,
+  # in its TeX Live; pre_compile names the family). Each of the family's pages of the specimen
+  # sheet is typeset under pdflatex in a run of its own, all at once, with the main memory a
+  # strip of plants needs (specimen-tikz.tex says why); a page fails on any error, and on the
+  # library's warning that it could not patch pgf's number scanner. Beside them tikzcheck draw
+  # builds the family's pics with engine=tikz and engine=lua, each in as many runs as there are
+  # cores, and compares their renders (pdftoppm, which the image lacks: poppler-utils). Pure
+  # TikZ is slow. All the families in one job took over 40 minutes on the runner, and each new
+  # one made it longer; a job each keeps the wait at the slowest family's, the plants (the
+  # specimen sheet's two strips). They run on pull requests that change more than Markdown and
+  # by hand. A push to main is the merge of a pull request that ran them, and a tag doesn't
+  # need them either.
   tikz:
     needs: changes
-    if: needs.changes.outputs.code == 'true' && !startsWith(github.ref, 'refs/tags/')
+    if: >-
+      needs.changes.outputs.code == 'true' &&
+      (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        family: [plants, fern, visitors, tracery, shells]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: the pure-TikZ species sheet page by page (pdflatex), and the two engines' pics compared
+      - name: the family's pages of the species sheet in pure TikZ (pdflatex), and its pics in both engines compared
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: tools/tikzcheck-ci.sh
           compiler: sh
           args: -e
           extra_system_packages: poppler-utils
+          pre_compile: export TIKZCHECK_FAMILY=${{ matrix.family }}
 
   # l3build's regression tests (build.lua, testfiles/): each test typesets a few pages and logs
   # the md5 of every drawing on them, so a change that moves one point of one drawing fails
@@ -236,7 +243,7 @@ jobs:
   # that florilegium.sty and the Lua files don't agree with, the l3build job one whose
   # drawings moved without their logs being recorded again, the postscript job one whose
   # PostScript port grows another garden, and the zip job one whose zip lacks a file. The tikz
-  # job doesn't run on a tag, since main's run of the same commit ran it. This
+  # jobs don't run on a tag, since the pull request ran them on the tree it merged. This
   # job signs a build provenance attestation for the PDFs, the manual and florilegium.zip built
   # from that tag and opens a draft release with them attached, along with the attestation
   # itself as florilegium-pdfs.sigstore.json. The notes are written by hand, and publishing the draft
@@ -248,8 +255,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # tikz doesn't run on a tag: the pull request and main ran it on the same tree, and on the
-    # runner it takes about 25 to 40 minutes
+    # tikz doesn't run on a tag: the pull request ran it on the tree it merged
     needs: [lua, pdfs, l3build, postscript, zip]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
