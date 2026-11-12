@@ -243,7 +243,7 @@ if arg[1] == "draw" then
   if has("tracery") then
   -- tracery: a window of every period and of every way a head branches, each kind of
   -- figure, transoms, spandrels of each kind, a headpiece screen with foils and one with
-  -- foliage, an arcade, a rose of two rings, a foil pointed and round, and small ones
+  -- foliage, a depressed ogee, an arcade, a rose of two rings, a foil pointed and round, and small ones
   -- (the ladder: no cusps under 8 mm a light, plain figures under 5, the arch alone under 3)
   for _, t in ipairs({
       "period=early_english, lights=2, figure=oculus",
@@ -270,6 +270,8 @@ if arg[1] == "draw" then
   pic("florilegium tracery={seed=2, role=window, size=1.6cm, traits={period=geometric, lights=2, figure=foiled, foils=4}}")
   pic("florilegium tracery={seed=2, role=window, size=0.9cm, traits={period=geometric, lights=2, figure=foiled, foils=4}}")
   pic("florilegium tracery={seed=2, role=headpiece, size=4cm}")
+  -- a depressed ogee whose shoulders turn 83 degrees to reach the apex, not the usual 80
+  pic("florilegium tracery={seed=22, role=headpiece, size=12cm}")
   end
   if has("shells") then
   -- shells (#5339): ammonites of every sculpture, keel and preservation, with each kind of
@@ -495,6 +497,8 @@ if arg[1] == "draw" then
       "the same window to the eye; its four daggers' hairline outlines fall a pixel apart on the grid (1.0%)",
     ["florilegium tracery={seed=1, role=rose, size=3cm, traits={rings=2}}"] =
       "the same rose to the eye; thirty-two sector outlines and sixteen spokes of hairline width fall a pixel apart on the grid (1.9%)",
+    ["florilegium tracery={seed=22, role=headpiece, size=12cm}"] =
+      "the arch and its moldings agree; the six foils between the heads sit up to 0.3 mm apart, as seed 20's did before the shoulders turned, and pgfmath's veclen is 0.02 units off under a crown ten spans in radius (1.8%)",
   }
   local bad, worst, wdark = 0, 0, 0
   -- a pic fails when its ink is this much darker or lighter, by at least 60 pixels' worth of a

@@ -6261,7 +6261,11 @@
     \pgfpathcurveto{\flo@P\flo@xa\flo@ya}{\flo@P\flo@xb\flo@yb}{\flo@P\flo@xc\flo@yc}%
     \let\flo@aa\flo@ab}}
 % sqrt(#1^2 - #2^2), or 0, scaled down first so that the squares stay in pgfmath's range: \flo@sqd
-\def\flo@sqdiff#1#2{\flo@calc\flo@sqd{8*sqrt(max(0,((#1)/8)*((#1)/8)-((#2)/8)*((#2)/8)))}}
+\def\flo@sqdiff#1#2{\pgfmathparse{abs(#1)>1000}\ifdim\pgfmathresult pt>0pt
+    % Past a thousand the eighths' squares leave pgfmath's range too, and a depressed
+    % ogee's crown can be forty spans. Take the roots of the sum and the difference there.
+    \flo@calc\flo@sqd{sqrt(max(0,abs(#1)-abs(#2)))*sqrt(abs(#1)+abs(#2))}%
+  \else\flo@calc\flo@sqd{8*sqrt(max(0,((#1)/8)*((#1)/8)-((#2)/8)*((#2)/8)))}\fi}
 % chains: piece #2 of chain #1 set from six values, or read into \flo@px \flo@py \flo@pr
 % \flo@pa \flo@pb \flo@pv
 \def\flo@cset#1#2#3#4#5#6#7#8{\expandafter\edef\csname flo@c@#1@#2\endcsname{{#3}{#4}{#5}{#6}{#7}{#8}}}
@@ -6297,6 +6301,23 @@
   \flo@loop{thpb}\flo@tcl{1}{\flo@hpn}{\flo@cget{#1}{\the\numexpr\flo@hpn+1-\flo@tcl\relax}%
     \flo@calc\flo@t{2*\flo@hpxm-\flo@px}\flo@calc\flo@ta{180-\flo@pb}\flo@calc\flo@tb{180-\flo@pa}%
     \flo@arcto\flo@t\flo@py\flo@pr\flo@ta\flo@tb{0}}}
+% A depressed ogee's shoulders turned #1 degrees. This finds where they end (\flo@tex,
+% \flo@tey), the tangent there and the apex as seen from it. The shoulders turn 80 degrees
+% and then one more at a time, up to 90, until the apex lies above the tangent and the
+% crown's radius is within forty spans. florilegium-tracery.lua's half_arch does the same.
+% At a fixed 80 the apex could lie below the tangent, so the radius came out negative and
+% the moldings and figures left the page.
+\def\flo@haturn#1{%
+  \flo@calc\flo@haae{180-#1}%
+  \flo@calc\flo@tex{\flo@tcx+\flo@har*cos(\flo@haae)}\flo@calc\flo@tey{\flo@hays+\flo@har*sin(\flo@haae)}%
+  \flo@calc\flo@tux{cos(\flo@haae)}\flo@calc\flo@tuy{sin(\flo@haae)}%
+  \flo@calc\flo@tdx{\flo@haxm-\flo@tex}\flo@calc\flo@tdy{\flo@hays+\flo@hah-\flo@tey}%
+  \flo@calc\flo@hadot{\flo@tdx*\flo@tux+\flo@tdy*\flo@tuy}%
+  \flo@calc\flo@hadd{\flo@tdx*\flo@tdx+\flo@tdy*\flo@tdy}%
+  \let\flo@tmp\relax
+  \ifnum#1<90 \flo@calc\flo@t{\flo@hadd/(80*\flo@has)-\flo@hadot}%
+    \ifdim\flo@t pt>0pt \edef\flo@tmp{\noexpand\flo@haturn{\the\numexpr#1+1\relax}}\fi\fi
+  \flo@tmp}
 % the left half of an arch over [#2, #3] springing at #4, as its construction line, into
 % chain #1: kind #5, excess #6, ogee #7, rise #8, shoulder #9 (the traits, or a head's own)
 \def\flo@halfarch#1#2#3#4#5#6#7#8#9{%
@@ -6341,12 +6362,10 @@
     % a headpiece's ogee: shoulders as the four-centered arch's, then reversed crowns, the
     % crown's radius at most forty spans (pgfmath's range; the Lua side caps it the same)
     \flo@calc\flo@har{(#9)*\flo@has}\flo@calc\flo@hah{(#8)*\flo@has}\flo@calc\flo@tcx{\flo@haxl+\flo@har}%
-    \flo@calc\flo@tex{\flo@tcx+\flo@har*cos(100)}\flo@calc\flo@tey{\flo@hays+\flo@har*sin(100)}%
-    \flo@calc\flo@tux{cos(100)}\flo@calc\flo@tuy{sin(100)}%
-    \flo@calc\flo@tdx{\flo@haxm-\flo@tex}\flo@calc\flo@tdy{\flo@hays+\flo@hah-\flo@tey}%
-    \flo@calc\flo@tRu{min(40*\flo@has,(\flo@tdx*\flo@tdx+\flo@tdy*\flo@tdy)/(2*(\flo@tdx*\flo@tux+\flo@tdy*\flo@tuy)))}%
+    \flo@haturn{80}%
+    \flo@calc\flo@tRu{min(40*\flo@has,\flo@hadd/(2*\flo@hadot))}%
     \flo@calc\flo@tcux{\flo@tex+\flo@tRu*\flo@tux}\flo@calc\flo@tcuy{\flo@tey+\flo@tRu*\flo@tuy}%
-    \flo@cset{#1}{1}\flo@tcx\flo@hays\flo@har{180}{100}{1}%
+    \flo@cset{#1}{1}\flo@tcx\flo@hays\flo@har{180}\flo@haae{1}%
     \flo@calc\flo@ta{atan2(\flo@tey-\flo@tcuy,\flo@tex-\flo@tcux)}%
     \flo@angleatx\flo@tcux\flo@tcuy\flo@tRu\flo@haxm{1}%
     \ifflo@yes\else\flo@calc\flo@axa{atan2(\flo@hays+\flo@hah-\flo@tcuy,\flo@haxm-\flo@tcux)}\fi
