@@ -18,7 +18,7 @@ make postscript             # the PostScript port through Ghostscript -> build/p
 make bench                  # v1.3 against this tree, and the TikZ library's engines (about 5 minutes)
 lualatex specimen-tikz.tex                         # every species form, the Lua engine (seconds)
 extra_mem_top=20000000 pdflatex specimen-tikz.tex  # the same in pure TikZ (about 10 minutes)
-sh tools/tikzcheck-ci.sh                           # what CI's tikz job runs, on every core
+sh tools/tikzcheck-ci.sh [plants]                  # what CI's tikz jobs run, one family (plants fern visitors tracery shells) or all, on every core
 ```
 
 No TeX installed? Build the image once and run everything in it:
@@ -40,7 +40,7 @@ make check RUN=tools/in-docker                        # l3build's regression tes
 tools/svgcheck.sh lua5.3 lua5.4                       # varied pages through florilegium-svg.lua, byte-identical across interpreters
 tools/in-docker texlua tools/speciescheck.lua 2000    # sampled species and visitors keep every rule; the TikZ tables and docs/traits.md are current
 tools/in-docker texlua tools/tikzcheck.lua 1 1000     # TikZ and Lua sample the same species (v:any for visitors, t:any for windows of tracery)
-tools/in-docker texlua tools/tikzcheck.lua draw quick # the Lua engine's pics render as pure TikZ's (about 15 minutes; draw tracery for the windows alone, about 4)
+tools/in-docker texlua tools/tikzcheck.lua draw quick # the Lua engine's pics render as pure TikZ's (about 15 minutes; draw plants, fern, visitors, tracery or shells for one family)
 tools/in-docker texlua tools/pgfmathcheck.lua 30000   # the pgfmath arithmetic Lua takes from TeX, exactly
 tools/in-docker texlua tools/animcheck.lua 1 2 3      # the last frame of the animation is the page
 tools/in-docker texlua tools/ident.lua build/ident-a  # content streams to diff before and after a change
