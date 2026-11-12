@@ -170,13 +170,20 @@ local function half_arch(w, xl, xr, ys, kind)
     local r1 = w.shoulder * s
     local h = w.rise * s
     local c1x = xl + r1
-    local ae = pi - math.rad(80)
-    local ex, ey = c1x + r1 * cos(ae), ys + r1 * sin(ae)
-    local ux, uy = cos(ae), sin(ae)
-    local dx, dy = xm - ex, ys + h - ey
+    -- the shoulders turn 80 degrees, or more (at most 90, where the crown starts level)
+    -- until the apex lies above the tangent there: below it no reversed crown reaches it
+    local ae, ex, ey, ux, uy, dx, dy, dot
+    for turn = 80, 90 do
+      ae = pi - math.rad(turn)
+      ex, ey = c1x + r1 * cos(ae), ys + r1 * sin(ae)
+      ux, uy = cos(ae), sin(ae)
+      dx, dy = xm - ex, ys + h - ey
+      dot = dx * ux + dy * uy
+      if (dx * dx + dy * dy) <= 80 * s * dot then break end
+    end
     -- the crown's radius at most forty spans (pgfmath's range in the TikZ library, which
     -- caps it the same); then its end where the circle meets the axis
-    local Ru = min(40 * s, (dx * dx + dy * dy) / (2 * (dx * ux + dy * uy)))
+    local Ru = min(40 * s, (dx * dx + dy * dy) / (2 * dot))
     local cux, cuy = ex + Ru * ux, ey + Ru * uy
     local ae2 = angle_at_x(cux, cuy, Ru, xm, true) or atan(ys + h - cuy, xm - cux)
     return { { c1x, ys, r1, pi, ae, true }, { cux, cuy, Ru, atan(ey - cuy, ex - cux), ae2, false } }
@@ -1242,9 +1249,11 @@ end
 function M.arch_frame(w, S, m)
   local x0, x1, y0 = m, S - m, m
   local xm = (x0 + x1) / 2
-  local _, rise = apex(half_arch(w, x0, x1, 0), xm)
+  -- a headpiece's ogee is the depressed one, as window() draws it
+  local kind = w.kind == "headpiece" and w.arch == "ogee" and "depressed" or nil
+  local _, rise = apex(half_arch(w, x0, x1, 0, kind), xm)
   local ys = S - m - rise
-  local main = half_arch(w, x0, x1, ys)
+  local main = half_arch(w, x0, x1, ys, kind)
   local cusps = w.cusps
   local depth = w.cuspdepth * (x1 - x0) * 0.5
   local lx, ly = at(main[1], main[1][4])
