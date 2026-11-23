@@ -68,7 +68,8 @@ to a page is the page's own draw, so the eight recur across a document the way p
 across a garden. On the last page, the arcs that reach into the space below the text come from
 the stems in turn. On two pages in five, the document's fern grows from a crown beside the
 root, two to four fronds leaning into the column, some unrolling, some turned to show their
-spores.
+spores. A frond that would reach past the column, in a narrow margin, is shortened to end
+inside it.
 
 The growth loop is v1.3's (see [how it works](how-it-works.md)). What changes is what it
 places. Each plant brings its own rows to the loop, which are its inflorescence, buds, smaller

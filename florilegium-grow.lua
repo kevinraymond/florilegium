@@ -804,6 +804,18 @@ function M.page(g)
         local px, py, rot = 0, 0, (fr.a - 90) * rad
         local reach = (1 - fern.stipe) * ({ lanceolate = 0.26, oblong = 0.2, ovate = 0.32, deltoid = 0.42 })[fern.outline]
         if fr.fertile then reach = 0.45 * reach end
+        -- a frond that would reach past the column (a narrow margin) is shortened to fit, or
+        -- the safety clip cuts it in a straight line before the text block. The spine scales
+        -- with the length, so the length that fits is exact, and a frond that fits is as it was
+        local qx, qy, far = 0, 0, 0
+        for k = 1, 32 do
+          local th = (90 + fr.arch * (fo * (k - 0.5) / 32) ^ 1.5) * rad
+          qx, qy = qx + fo / 32 * cos(th), qy + fo / 32 * sin(th)
+          far = max(far, qx * cos(rot) - qy * sin(rot))
+        end
+        far = far + reach
+        local room = g.colright + 0.2 - x0
+        if room > 0 and fr.L * far > room then fr.L = room / far end
         for k = 1, 32 do
           local sk = fo * (k - 0.5) / 32
           local th = (90 + fr.arch * sk ^ 1.5) * rad
